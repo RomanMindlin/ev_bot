@@ -18,7 +18,8 @@ dependencies = [
     "tenacity==8.2.3",
     "pydantic==2.6.1",
     "pydantic-settings==2.1.0",
-    "pydantic-ai==0.1.0"
+    "pydantic-ai==0.1.0",
+    "aiogram==3.3.0"
 ]
 
 [project.optional-dependencies]

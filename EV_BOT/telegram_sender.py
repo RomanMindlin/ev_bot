@@ -5,6 +5,10 @@ from aiogram import Bot
 from aiogram.enums import ParseMode
 from ev_bot.settings import settings
 from ev_bot.ai_agent import AiAgent
+from ev_bot.logger import setup_logger
+
+
+logger = setup_logger("telegram_sender")
 
 
 # Constant prompt for the AI agent
@@ -29,8 +33,10 @@ async def send_to_telegram(message: str) -> None:
         ValueError: If Telegram settings are not configured
     """
     if not settings.telegram_bot_token or not settings.telegram_channel_id:
+        logger.error("Telegram settings not configured")
         raise ValueError("Telegram bot token and channel ID must be configured")
     
+    logger.info("Sending message to Telegram channel")
     bot = Bot(token=settings.telegram_bot_token)
     try:
         await bot.send_message(
@@ -38,6 +44,10 @@ async def send_to_telegram(message: str) -> None:
             text=message,
             parse_mode=ParseMode.HTML
         )
+        logger.info("Message sent successfully")
+    except Exception as e:
+        logger.error(f"Failed to send message: {str(e)}")
+        raise
     finally:
         await bot.session.close()
 
@@ -52,6 +62,7 @@ def format_travel_ideas(ideas: Dict[str, Any]) -> str:
     Returns:
         str: Formatted HTML message
     """
+    logger.info("Formatting travel ideas as HTML message")
     message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
     
     for idea in ideas["ideas"]:
@@ -70,25 +81,33 @@ def format_travel_ideas(ideas: Dict[str, Any]) -> str:
         message += f"🔗 <a href='{summary['booking_link']}'>Book Now</a>\n\n"
         message += "➖➖➖➖➖➖➖➖➖➖\n\n"
     
+    logger.info("Message formatting completed")
     return message
 
 
 async def main() -> None:
     """Main function to run the telegram sender."""
     try:
+        logger.info("Starting telegram sender")
+        
         # Initialize AI agent
+        logger.info("Initializing AI agent")
         agent = AiAgent()
         
         # Get travel ideas
+        logger.info("Getting travel ideas from AI agent")
         ideas = await agent.run_agent(PROMPT)
         
         # Format and send message
+        logger.info("Formatting and sending message")
         message = format_travel_ideas(ideas)
         await send_to_telegram(message)
         
+        logger.info("Successfully completed telegram sender execution")
         print("Successfully sent travel ideas to Telegram channel")
         
     except Exception as e:
+        logger.error(f"Error in telegram sender: {str(e)}")
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
 

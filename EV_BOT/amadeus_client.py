@@ -2,6 +2,10 @@ import requests
 from typing import Dict, Any, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from ev_bot.settings import settings
+from ev_bot.logger import setup_logger
+
+
+logger = setup_logger("amadeus_client")
 
 
 class AmadeusClient:
@@ -23,14 +27,17 @@ class AmadeusClient:
             client_id (str, optional): Amadeus API client ID. If not provided, will look for AMADEUS_CLIENT_ID in environment.
             client_secret (str, optional): Amadeus API client secret. If not provided, will look for AMADEUS_CLIENT_SECRET in environment.
         """
+        logger.info("Initializing AmadeusClient")
         self.client_id = client_id or settings.client_id
         self.client_secret = client_secret or settings.client_secret
         
         if not self.client_id or not self.client_secret:
+            logger.error("Amadeus API credentials not found")
             raise ValueError("Amadeus API credentials not found. Please provide client_id and client_secret or set environment variables.")
         
         self.access_token = None
         self._authenticate()
+        logger.info("AmadeusClient initialized successfully")
     
     @retry(
         stop=stop_after_attempt(settings.max_retries),
@@ -39,16 +46,21 @@ class AmadeusClient:
     )
     def _authenticate(self) -> None:
         """Authenticate with Amadeus API and get access token."""
+        logger.info("Authenticating with Amadeus API")
         auth_data = {
             "grant_type": "client_credentials",
             "client_id": self.client_id,
             "client_secret": self.client_secret
         }
         
-        response = requests.post(settings.auth_url, data=auth_data)
-        response.raise_for_status()
-        
-        self.access_token = response.json()["access_token"]
+        try:
+            response = requests.post(settings.auth_url, data=auth_data)
+            response.raise_for_status()
+            self.access_token = response.json()["access_token"]
+            logger.info("Successfully authenticated with Amadeus API")
+        except Exception as e:
+            logger.error(f"Authentication failed: {str(e)}")
+            raise
     
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
@@ -83,6 +95,7 @@ class AmadeusClient:
         Returns:
             Dict[str, Any]: Flight search results
         """
+        logger.info(f"Searching flights from {origin} to {destination} on {departure_date}")
         endpoint = f"{settings.base_url}/shopping/flight-offers"
         
         params = {
@@ -96,11 +109,17 @@ class AmadeusClient:
         
         if return_date:
             params["returnDate"] = return_date
+            logger.info(f"Round trip with return date {return_date}")
         
-        response = requests.get(endpoint, headers=self._get_headers(), params=params)
-        response.raise_for_status()
-        
-        return response.json()
+        try:
+            response = requests.get(endpoint, headers=self._get_headers(), params=params)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"Found {len(result.get('data', []))} flight offers")
+            return result
+        except Exception as e:
+            logger.error(f"Flight search failed: {str(e)}")
+            raise
     
     @retry(
         stop=stop_after_attempt(settings.max_retries),
@@ -128,6 +147,7 @@ class AmadeusClient:
         Returns:
             Dict[str, Any]: Hotel search results
         """
+        logger.info(f"Searching hotels in {city_code} from {check_in_date} to {check_out_date}")
         endpoint = f"{settings.base_url}/reference-data/locations/hotels/by-city"
         
         params = {
@@ -139,10 +159,15 @@ class AmadeusClient:
             "radiusUnit": radius_unit
         }
         
-        response = requests.get(endpoint, headers=self._get_headers(), params=params)
-        response.raise_for_status()
-        
-        return response.json()
+        try:
+            response = requests.get(endpoint, headers=self._get_headers(), params=params)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"Found {len(result.get('data', []))} hotels")
+            return result
+        except Exception as e:
+            logger.error(f"Hotel search failed: {str(e)}")
+            raise
 
     @retry(
         stop=stop_after_attempt(settings.max_retries),
@@ -173,6 +198,7 @@ class AmadeusClient:
         Returns:
             Dict[str, Any]: Flight inspiration search results
         """
+        logger.info(f"Searching flight inspiration from {origin}")
         endpoint = f"{settings.base_url}/shopping/flight-destinations"
         
         params = {
@@ -183,17 +209,26 @@ class AmadeusClient:
         
         if max_price is not None:
             params["maxPrice"] = max_price
+            logger.info(f"Maximum price: {max_price} {currency_code}")
             
         if departure_date:
             params["departureDate"] = departure_date
+            logger.info(f"Departure date: {departure_date}")
             
         if return_date:
             params["returnDate"] = return_date
+            logger.info(f"Return date: {return_date}")
             
         if duration:
             params["duration"] = duration
+            logger.info(f"Trip duration: {duration} days")
         
-        response = requests.get(endpoint, headers=self._get_headers(), params=params)
-        response.raise_for_status()
-        
-        return response.json() 
+        try:
+            response = requests.get(endpoint, headers=self._get_headers(), params=params)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"Found {len(result.get('data', []))} flight destinations")
+            return result
+        except Exception as e:
+            logger.error(f"Flight inspiration search failed: {str(e)}")
+            raise 
