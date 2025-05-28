@@ -9,6 +9,13 @@ class AmadeusSettings(BaseSettings):
     # API Credentials
     client_id: Optional[str] = Field(None, env="AMADEUS_CLIENT_ID")
     client_secret: Optional[str] = Field(None, env="AMADEUS_CLIENT_SECRET")
+    openai_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
+    
+    # Default Location
+    origin: str = Field(
+        "NYC",
+        description="Default origin location for flight searches"
+    )
     
     # API URLs
     base_url: str = Field(
