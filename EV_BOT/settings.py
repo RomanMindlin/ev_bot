@@ -11,6 +11,10 @@ class AmadeusSettings(BaseSettings):
     client_secret: Optional[str] = Field(None, env="AMADEUS_CLIENT_SECRET")
     openai_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
     
+    # Telegram Settings
+    telegram_bot_token: Optional[str] = Field(None, env="TELEGRAM_BOT_TOKEN")
+    telegram_channel_id: Optional[str] = Field(None, env="TELEGRAM_CHANNEL_ID")
+    
     # Default Location
     origin: str = Field(
         "NYC",
