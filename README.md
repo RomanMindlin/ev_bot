@@ -113,8 +113,4 @@ ruff check .
 black .
 isort .
 mypy .
-```
-
-## License
-
-MIT License - see LICENSE file for details 
+``` 
