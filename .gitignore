@@ -38,7 +38,4 @@ ENV/
 htmlcov/
 .pytest_cache/
 .mypy_cache/
-
-# Distribution
-dist/
-build/ 
+*.log

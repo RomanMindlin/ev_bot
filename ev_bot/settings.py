@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,23 +7,23 @@ class AmadeusSettings(BaseSettings):
     """Amadeus API settings and configuration."""
     
     # API Credentials
-    client_id: Optional[str] = Field(None, env="AMADEUS_CLIENT_ID")
-    client_secret: Optional[str] = Field(None, env="AMADEUS_CLIENT_SECRET")
-    openai_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
+    client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
+    client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
+    openai_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
     
     # Telegram Settings
-    telegram_bot_token: Optional[str] = Field(None, env="TELEGRAM_BOT_TOKEN")
-    telegram_channel_id: Optional[str] = Field(None, env="TELEGRAM_CHANNEL_ID")
+    telegram_bot_token: Optional[str] = Field(None, alias="TELEGRAM_BOT_TOKEN")
+    telegram_channel_id: Optional[str] = Field(None, alias="TELEGRAM_CHANNEL_ID")
     
     # Default Location
     origin: str = Field(
-        "NYC",
+        "MAD",
         description="Default origin location for flight searches"
     )
     
     # API URLs
     base_url: str = Field(
-        "https://test.api.amadeus.com/v2",
+        "https://test.api.amadeus.com/v1",
         description="Base URL for Amadeus API endpoints"
     )
     auth_url: str = Field(
@@ -46,7 +46,7 @@ class AmadeusSettings(BaseSettings):
     )
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file="../.env",
         env_file_encoding="utf-8",
         case_sensitive=True
     )

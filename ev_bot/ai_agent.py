@@ -1,15 +1,22 @@
 from typing import Dict, Any
-from pydantic import BaseModel, HttpUrl, ValidationError
-from pydantic_ai import Agent
+from amadeus import Client, ResponseError
+from pydantic import BaseModel, HttpUrl
+from pydantic_ai import Agent, Tool
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from ev_bot.settings import settings
-from ev_bot.amadeus_client import AmadeusClient
 from ev_bot.logger import setup_logger
 from datetime import datetime, timedelta
 
 logger = setup_logger("ai_agent")
 
 # Constants for the AI agent
-MODEL = "gpt-4-turbo-preview"
+MODEL = OpenAIModel(
+    model_name="gpt-4-turbo-preview",
+    provider=OpenAIProvider(
+        api_key=settings.openai_key
+    )
+)
 SYSTEM_PROMPT = """You are a helpful AI assistant that specializes in travel planning and booking.
 Your job is to retrieve a list of flights available from the user's location, 
 analyze the retrieved data, and return three best travel ideas.
@@ -19,8 +26,6 @@ You should analyze user requests and provide structured responses that can be us
 You have access to the following tools:
 - search_flight_inspiration: Searches for flight inspiration from the user's location for the next week.
   Returns a list of possible destinations with prices and other details."""
-
-OPENAI_KEY = settings.openai_key
 
 
 class TravelSummary(BaseModel):
@@ -49,22 +54,24 @@ class AiAgent:
     def __init__(self):
         """Initialize the AI agent with model and system prompt."""
         logger.info("Initializing AiAgent")
-        self.agent = Agent(
-            model=MODEL,
-            system_prompt=SYSTEM_PROMPT,
-            openai_key=OPENAI_KEY,
-        )
-        self.amadeus_client = AmadeusClient()
-        
+
         # Register the flight inspiration search tool
         logger.info("Registering flight inspiration search tool")
-        self.agent.register_tool(
-            name="search_flight_inspiration",
-            description="Search for flight inspiration from the user's location for the next week",
-            function=self._search_flight_inspiration
+        tools = [
+            Tool(self._search_flight_inspiration)
+        ]
+
+        self.agent = Agent(
+            model=MODEL,
+            tools=tools
         )
+        self.amadeus = Client(
+            client_id=settings.client_id,
+            client_secret=settings.client_secret,
+        )
+
         logger.info("AiAgent initialized successfully")
-    
+
     def _search_flight_inspiration(self) -> Dict[str, Any]:
         """
         Search for flight inspiration for the next week.
@@ -76,15 +83,13 @@ class AiAgent:
         # Calculate dates for next week
         today = datetime.now()
         departure_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
-        return_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
-        
+
         try:
             # Search for flight inspiration
-            result = self.amadeus_client.search_flight_inspiration(
+            result = self.amadeus.shopping.flight_destinations.get(
                 origin=settings.origin,
-                one_way=False,
-                departure_date=departure_date,
-                return_date=return_date,
+                oneWay=False,
+                departureDate=departure_date,
                 duration=7  # 7 days trip
             )
             logger.info(f"Found {len(result.get('data', []))} flight inspirations")
