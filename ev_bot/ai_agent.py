@@ -12,7 +12,7 @@ logger = setup_logger("ai_agent")
 
 # Constants for the AI agent
 MODEL = OpenAIModel(
-    model_name="gpt-4-turbo-preview",
+    model_name="gpt-4o",
     provider=OpenAIProvider(
         api_key=settings.openai_key
     )
@@ -20,12 +20,33 @@ MODEL = OpenAIModel(
 SYSTEM_PROMPT = """You are a helpful AI assistant that specializes in travel planning and booking.
 Your job is to retrieve a list of flights available from the user's location, 
 analyze the retrieved data, and return three best travel ideas.
-Your responses should always be in valid JSON format.
-You should analyze user requests and provide structured responses that can be used to make API calls.
+
+Your job is to retrieve a list of flights available from the user's location, 
+analyze the retrieved data, and return three best travel ideas.
 
 You have access to the following tools:
 - search_flight_inspiration: Searches for flight inspiration from the user's location for the next week.
-  Returns a list of possible destinations with prices and other details."""
+  Returns a list of possible destinations with prices and other details.
+
+Each travel idea must follow this structure:
+        {
+          "header": "...", #a catchy travel idea title
+          "motivation": "...", #a reason to visit the destination
+          "destination_description": "...", #a brief about the location
+          "travel_summary": {
+            "flight_number": "...", #if available
+            "flight_price": "...", 
+            "starting_point": "...", #city name for origin code
+            "destination": "...", #city name for destination code
+            "travel_dates": "...",
+            "booking_link": "..." #URL to purchase tickets
+          }
+        }
+    
+Return a JSON object with a top-level "ideas" key containing a list of 3 ideas.
+
+Return only valid JSON. Do not include any markdown, code block delimiters, or extra commentary.
+  """
 
 
 class TravelSummary(BaseModel):
@@ -63,7 +84,9 @@ class AiAgent:
 
         self.agent = Agent(
             model=MODEL,
-            tools=tools
+            system_prompt=SYSTEM_PROMPT,
+            tools=tools,
+            output_type=FlightAgentOutput
         )
         self.amadeus = Client(
             client_id=settings.client_id,
@@ -98,7 +121,7 @@ class AiAgent:
             logger.error(f"Flight inspiration search failed: {str(e)}")
             raise
     
-    async def run_agent(self, prompt: str) -> Dict[str, Any]:
+    async def run_agent(self, prompt: str) -> FlightAgentOutput:
         """
         Run the AI agent with the given prompt.
         
