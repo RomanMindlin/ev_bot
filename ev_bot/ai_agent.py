@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from amadeus import Client, ResponseError
+from amadeus import Client
 from pydantic import BaseModel, HttpUrl
 from pydantic_ai import Agent, Tool
 from pydantic_ai.models.openai import OpenAIModel
