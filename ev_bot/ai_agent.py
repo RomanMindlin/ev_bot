@@ -91,6 +91,7 @@ class AiAgent:
         self.amadeus = Client(
             client_id=settings.client_id,
             client_secret=settings.client_secret,
+            hostname=settings.environment
         )
 
         logger.info("AiAgent initialized successfully")
