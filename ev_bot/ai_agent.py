@@ -112,7 +112,7 @@ class AiAgent:
             result = self.amadeus.shopping.flight_destinations.get(
                 origin=settings.origin,
                 oneWay=False,
-                # departureDate=departure_date,
+                departureDate=departure_date,
                 duration=7  # 7 days trip
             )
             logger.info(f"Found {len(result.data)} flight inspirations")

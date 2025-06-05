@@ -99,7 +99,6 @@ async def main() -> None:
         # Format and send message
         logger.info("Formatting and sending message")
         message = format_travel_ideas(ideas)
-        # print(message)
         await send_to_telegram(message)
         
         logger.info("Successfully completed telegram sender execution")
