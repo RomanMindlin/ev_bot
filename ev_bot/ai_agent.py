@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from amadeus import Client
+from amadeus import Client, ResponseError
 from pydantic import BaseModel, HttpUrl
 from pydantic_ai import Agent, Tool
 from pydantic_ai.models.openai import OpenAIModel
@@ -12,7 +12,7 @@ logger = setup_logger("ai_agent")
 
 # Constants for the AI agent
 MODEL = OpenAIModel(
-    model_name="gpt-4o",
+    model_name="gpt-4o-mini",
     provider=OpenAIProvider(
         api_key=settings.openai_key
     )
@@ -112,13 +112,13 @@ class AiAgent:
             result = self.amadeus.shopping.flight_destinations.get(
                 origin=settings.origin,
                 oneWay=False,
-                departureDate=departure_date,
+                # departureDate=departure_date,
                 duration=7  # 7 days trip
             )
-            logger.info(f"Found {len(result.get('data', []))} flight inspirations")
-            return result
-        except Exception as e:
-            logger.error(f"Flight inspiration search failed: {str(e)}")
+            logger.info(f"Found {len(result.data)} flight inspirations")
+            return result.data[:3]
+        except ResponseError as e:
+            logger.error(f"Flight inspiration search failed with status {e.response.status_code}: {e.response.body}")
             raise
     
     async def run_agent(self, prompt: str) -> FlightAgentOutput:
@@ -137,17 +137,22 @@ class AiAgent:
         logger.info("Running AI agent with prompt")
         try:
             result = await self.agent.run(prompt)
-            
-            raw_output = result.output.strip()
-            logger.debug(f"Raw agent output: {raw_output}")
 
-            # Remove Markdown-style code block
-            if raw_output.startswith("```json"):
-                raw_output = raw_output.removeprefix("```json").removesuffix("```").strip()
-            elif raw_output.startswith("```"):
-                raw_output = raw_output.removeprefix("```").removesuffix("```").strip()
+            if isinstance(result.output, FlightAgentOutput):
+                structured = result.output
+            else:
+                # Otherwise, treat as string and parse
+                raw_output = str(result.output).strip()
+                logger.debug(f"Raw agent output: {raw_output}")
 
-            structured = FlightAgentOutput.model_validate_json(raw_output)
+                # Remove Markdown-style code block
+                if raw_output.startswith("```json"):
+                    raw_output = raw_output.removeprefix("```json").removesuffix("```").strip()
+                elif raw_output.startswith("```"):
+                    raw_output = raw_output.removeprefix("```").removesuffix("```").strip()
+
+                structured = FlightAgentOutput.model_validate_json(raw_output)
+
             logger.info(f"Successfully processed {len(structured.ideas)} travel ideas")
             return structured
         except Exception as e:
