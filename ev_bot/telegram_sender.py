@@ -1,10 +1,9 @@
 import asyncio
 import sys
-from typing import Dict, Any
 from aiogram import Bot
 from aiogram.enums import ParseMode
 from ev_bot.settings import settings
-from ev_bot.ai_agent import AiAgent
+from ev_bot.ai_agent import AiAgent, FlightAgentOutput
 from ev_bot.logger import setup_logger
 
 
@@ -52,12 +51,12 @@ async def send_to_telegram(message: str) -> None:
         await bot.session.close()
 
 
-def format_travel_ideas(ideas: Dict[str, Any]) -> str:
+def format_travel_ideas(ideas: FlightAgentOutput) -> str:
     """
     Format travel ideas as an HTML message.
     
     Args:
-        ideas (Dict[str, Any]): The travel ideas from the AI agent
+        ideas (FlightAgentOutput): The travel ideas from the AI agent
         
     Returns:
         str: Formatted HTML message
@@ -65,20 +64,20 @@ def format_travel_ideas(ideas: Dict[str, Any]) -> str:
     logger.info("Formatting travel ideas as HTML message")
     message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
     
-    for idea in ideas["ideas"]:
-        message += f"<b>{idea['header']}</b>\n"
-        message += f"<i>{idea['motivation']}</i>\n\n"
-        message += f"{idea['destination_description']}\n\n"
+    for idea in ideas.ideas:
+        message += f"<b>{idea.header}</b>\n"
+        message += f"<i>{idea.motivation}</i>\n\n"
+        message += f"{idea.destination_description}\n\n"
         
-        summary = idea["travel_summary"]
+        summary = idea.travel_summary
         message += "<b>Travel Details:</b>\n"
-        message += f"📍 From: {summary['starting_point']}\n"
-        message += f"✈️ To: {summary['destination']}\n"
-        message += f"📅 Dates: {summary['travel_dates']}\n"
-        message += f"💰 Price: {summary['flight_price']}\n"
-        if summary.get("flight_number"):
-            message += f"🔢 Flight: {summary['flight_number']}\n"
-        message += f"🔗 <a href='{summary['booking_link']}'>Book Now</a>\n\n"
+        message += f"📍 From: {summary.starting_point}\n"
+        message += f"✈️ To: {summary.destination}\n"
+        message += f"📅 Dates: {summary.travel_dates}\n"
+        message += f"💰 Price: {summary.flight_price}\n"
+        if summary.flight_number:
+            message += f"🔢 Flight: {summary.flight_number}\n"
+        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n\n"
         message += "➖➖➖➖➖➖➖➖➖➖\n\n"
     
     logger.info("Message formatting completed")

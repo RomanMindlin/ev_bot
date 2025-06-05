@@ -1,54 +1,52 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "ev-bot"
+name = "ev_bot"
 version = "0.1.0"
-description = "Amadeus API Python Client"
+description = "AI-powered travel inspiration bot"
 readme = "README.md"
-requires-python = ">=3.8,<3.13"
-license = "MIT"
-authors = [
-    { name = "Your Name", email = "your.email@example.com" }
-]
+requires-python = ">=3.10,<3.13"
 dependencies = [
-    "requests==2.31.0",
-    "python-dotenv==1.0.0",
-    "tenacity==8.2.3",
-    "pydantic==2.6.1",
-    "pydantic-settings==2.1.0",
-    "pydantic-ai==0.1.0",
-    "aiogram==3.3.0"
+    "pydantic>=2.4.1",
+    "python-dotenv>=1.0.1",
+    "openai>=1.12.0",
+    "pydantic-ai>=0.1.0",
+    "aiogram>=3.3.0",
+    "amadeus>=12.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==7.4.4",
-    "black==24.1.1",
-    "isort==5.13.2",
-    "mypy==1.8.0",
-    "ruff==0.2.1"
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.23.5",
+    "pytest-cov>=4.1.0",
+    "black>=24.1.1",
+    "isort>=5.13.2",
+    "mypy>=1.8.0",
+    "ruff>=0.2.1",
 ]
 
 [tool.black]
-line-length = 88
-target-version = ["py38"]
+line-length = 100
+target-version = ["py312"]
 
 [tool.isort]
 profile = "black"
+line_length = 100
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "3.8"
-strict = true
-ignore_missing_imports = true
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 
 [tool.ruff]
-line-length = 88
-target-version = "py38"
+line-length = 100
+target-version = "py312"
 select = ["E", "F", "B", "I"]
 ignore = []
 
-[tool.uv]
-python = "3.8" 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=ev_bot --cov-report=term-missing"
