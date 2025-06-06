@@ -21,9 +21,6 @@ SYSTEM_PROMPT = """You are a helpful AI assistant that specializes in travel pla
 Your job is to retrieve a list of flights available from the user's location, 
 analyze the retrieved data, and return three best travel ideas.
 
-Your job is to retrieve a list of flights available from the user's location, 
-analyze the retrieved data, and return three best travel ideas.
-
 You have access to the following tools:
 - search_flight_inspiration: Searches for flight inspiration from the user's location for the next week.
   Returns a list of possible destinations with prices and other details.
@@ -117,7 +114,7 @@ class AiAgent:
                 duration=7  # 7 days trip
             )
             logger.info(f"Found {len(result.data)} flight inspirations")
-            return result.data[:3]
+            return result.data
         except ResponseError as e:
             logger.error(f"Flight inspiration search failed with status {e.response.status_code}: {e.response.body}")
             raise
