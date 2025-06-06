@@ -11,12 +11,15 @@ logger = setup_logger("telegram_sender")
 
 
 # Constant prompt for the AI agent
-PROMPT = """Please analyze available flights and suggest three best travel ideas for the next week.
+PROMPT = f"""Please analyze available flights and suggest three best travel ideas for the next week.
+Best here means chippest, most interesting, or most unique destinations based on current flight data.
 For each idea, provide:
 1. A catchy header
 2. Motivation for choosing this destination
 3. Brief description of the destination
 4. Travel details including flight price, dates, and booking link
+
+Please provide all text in {settings.language or 'English'} language and show prices in {settings.currency or 'EUR'} currency.
 
 Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
 
@@ -74,7 +77,7 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += f"📍 From: {summary.starting_point}\n"
         message += f"✈️ To: {summary.destination}\n"
         message += f"📅 Dates: {summary.travel_dates}\n"
-        message += f"💰 Price: {summary.flight_price}\n"
+        message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
         if summary.flight_number:
             message += f"🔢 Flight: {summary.flight_number}\n"
         message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n\n"
