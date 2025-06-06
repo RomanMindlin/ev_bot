@@ -1,22 +1,35 @@
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AmadeusSettings(BaseSettings):
+class Settings(BaseSettings):
     """Amadeus API settings and configuration."""
     
+    # Environment Configuration
+    environment: str = Field("test", alias="ENVIRONMENT")
+    
     # API Credentials
-    client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
-    client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
+    prod_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
+    prod_client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
+    test_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID_TEST")
+    test_client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET_TEST")
+    
+    @computed_field
+    @property
+    def client_id(self) -> Optional[str]:
+        return self.test_client_id if self.environment == "test" else self.prod_client_id
+    
+    @computed_field
+    @property
+    def client_secret(self) -> Optional[str]:
+        return self.test_client_secret if self.environment == "test" else self.prod_client_secret
+
     openai_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
     
     # Telegram Settings
     telegram_bot_token: Optional[str] = Field(None, alias="TELEGRAM_BOT_TOKEN")
     telegram_channel_id: Optional[str] = Field(None, alias="TELEGRAM_CHANNEL_ID")
-
-    # Environment Configuration
-    environment: str = Field("test", alias="ENVIRONMENT")
 
     # Default Location
     origin: str = Field(
@@ -70,4 +83,4 @@ class AmadeusSettings(BaseSettings):
 
 
 # Create a global settings instance
-settings = AmadeusSettings() 
+settings = Settings()
