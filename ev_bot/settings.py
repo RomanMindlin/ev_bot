@@ -21,7 +21,21 @@ class AmadeusSettings(BaseSettings):
     # Default Location
     origin: str = Field(
         "MAD",
-        description="Default origin location for flight searches"
+        description="Default origin location for flight searches",
+        alias="ORIGIN"
+    )
+
+    # Language and Currency
+    language: Optional[str] = Field(
+        None,
+        alias="LANGUAGE",
+        description="Preferred language for message texts"
+    )
+
+    currency: Optional[str] = Field(
+        "EUR",
+        alias="CURRENCY",
+        description="Currency for API responses"
     )
     
     # API URLs
