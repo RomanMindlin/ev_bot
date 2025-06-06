@@ -76,7 +76,7 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += "<b>Travel Details:</b>\n"
         message += f"📍 From: {summary.starting_point}\n"
         message += f"✈️ To: {summary.destination}\n"
-        message += f"📅 Dates: {summary.travel_dates}\n"
+        message += f"📅 Dates: {summary.travel_dates_str}\n"
         message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
         if summary.flight_number:
             message += f"🔢 Flight: {summary.flight_number}\n"

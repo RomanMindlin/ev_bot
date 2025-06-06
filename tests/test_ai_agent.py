@@ -25,7 +25,7 @@ mock_amadeus.return_value.shopping.flight_destinations.get.return_value = {
 
 # Create a mock response object that matches the Agent.run() return type
 mock_response = Mock()
-mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
+mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates_str": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
 
 mock_agent_instance = Mock()
 mock_agent_instance.run = AsyncMock(return_value=mock_response)
@@ -76,7 +76,7 @@ async def test_run_agent_invalid_json(ai_agent):
 @pytest.mark.asyncio
 async def test_run_agent_markdown_json(ai_agent):
     """Test agent run with markdown-wrapped JSON response."""
-    valid_json = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
+    valid_json = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates_str": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
     ai_agent.agent.run.return_value.output = f"```json\n{valid_json}\n```"
     result = await ai_agent.run_agent("test prompt")
     assert isinstance(result, FlightAgentOutput)

@@ -35,7 +35,9 @@ Each travel idea must follow this structure:
             "flight_price": "...", 
             "starting_point": "...", #city name for origin code
             "destination": "...", #city name for destination code
-            "travel_dates": "...",
+            "travel_dates_str": "...", #travel dates as a string
+            "travel_start_date": "...", #travel start date
+            "travel_end_date": "...", #travel end date
             "booking_link": "..." #URL to purchase tickets
           }
         }
@@ -51,7 +53,9 @@ class TravelSummary(BaseModel):
     flight_price: str
     starting_point: str
     destination: str
-    travel_dates: str
+    travel_dates_str: str
+    travel_start_date: datetime
+    travel_end_date: datetime
     booking_link: HttpUrl
 
 

@@ -1,5 +1,6 @@
 import os
 import pytest
+from datetime import datetime
 from unittest.mock import Mock, patch, AsyncMock
 
 # Set test environment variables before any imports
@@ -43,7 +44,7 @@ def mock_agent():
     """Mock Agent class."""
     with patch("ev_bot.ai_agent.Agent") as mock_agent:
         mock_response = Mock()
-        mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
+        mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates_str": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
         mock_agent_instance = Mock()
         mock_agent_instance.run = AsyncMock(return_value=mock_response)
         mock_agent.return_value = mock_agent_instance
@@ -78,7 +79,7 @@ def ai_agent():
         }
         # Setup mock for Agent
         mock_response = Mock()
-        mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
+        mock_response.output = '''{"ideas": [{"header": "London Adventure", "motivation": "Perfect for history lovers", "destination_description": "Explore the rich history of London", "travel_summary": {"flight_price": "500", "starting_point": "NYC", "destination": "LON", "travel_dates_str": "2024-06-01 to 2024-06-08", "booking_link": "https://test.com"}}]}'''
         mock_agent_instance = Mock()
         mock_agent_instance.run = AsyncMock(return_value=mock_response)
         mock_agent.return_value = mock_agent_instance
@@ -92,7 +93,9 @@ def mock_flight_agent_output():
         flight_price="500",
         starting_point="NYC",
         destination="LON",
-        travel_dates="2024-06-01 to 2024-06-08",
+        travel_dates_str="2024-06-01 to 2024-06-08",
+        travel_start_date=datetime("2024-06-01"),
+        travel_end_date=datetime("2024-06-08"),
         booking_link=HttpUrl("https://test.com")
     )
     mock_travel_idea = TravelIdea(
