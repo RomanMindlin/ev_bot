@@ -14,11 +14,28 @@ class AmadeusSettings(BaseSettings):
     # Telegram Settings
     telegram_bot_token: Optional[str] = Field(None, alias="TELEGRAM_BOT_TOKEN")
     telegram_channel_id: Optional[str] = Field(None, alias="TELEGRAM_CHANNEL_ID")
-    
+
+    # Environment Configuration
+    environment: str = Field("test", alias="ENVIRONMENT")
+
     # Default Location
     origin: str = Field(
         "MAD",
-        description="Default origin location for flight searches"
+        description="Default origin location for flight searches",
+        alias="ORIGIN"
+    )
+
+    # Language and Currency
+    language: Optional[str] = Field(
+        None,
+        alias="LANGUAGE",
+        description="Preferred language for message texts"
+    )
+
+    currency: Optional[str] = Field(
+        "EUR",
+        alias="CURRENCY",
+        description="Currency for API responses"
     )
     
     # API URLs

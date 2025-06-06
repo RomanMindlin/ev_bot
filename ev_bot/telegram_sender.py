@@ -96,7 +96,6 @@ async def main() -> None:
         # Get travel ideas
         logger.info("Getting travel ideas from AI agent")
         ideas = await agent.run_agent(PROMPT)
-        
         # Format and send message
         logger.info("Formatting and sending message")
         message = format_travel_ideas(ideas)
