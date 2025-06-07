@@ -20,6 +20,7 @@ For each idea, provide:
 4. Travel details including flight price, dates, and booking link
 
 Please provide all text in {settings.language or 'English'} language and show prices in {settings.currency or 'EUR'} currency.
+Include currency symbols where appropriate. Don't try to translate the currency symbol, just use the symbol itself.
 
 Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
 
