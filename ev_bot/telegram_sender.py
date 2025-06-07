@@ -2,34 +2,32 @@ import asyncio
 import sys
 from aiogram import Bot
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
 from ev_bot.settings import settings
 from ev_bot.ai_agent import AiAgent, FlightAgentOutput
 from ev_bot.logger import setup_logger
+from typing import List, Tuple, Optional
 
 
 logger = setup_logger("telegram_sender")
 
-
 # Constant prompt for the AI agent
-PROMPT = f"""Please analyze available flights and suggest three best travel ideas for the next week.
-Best here means chippest, most interesting, or most unique destinations based on current flight data.
-For each idea, provide:
-1. A catchy header
-2. Motivation for choosing this destination
-3. Brief description of the destination
-4. Travel details including flight price, dates, and booking link
-
-Please provide all text in {settings.language or 'English'} language and show prices in {settings.currency or 'EUR'} currency.
-
-Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
+PROMPT = """Give me best travel ideas"""
 
 
-async def send_to_telegram(message: str) -> None:
+def is_direct_image_url(url: str) -> bool:
+    """
+    Check if the URL points directly to a supported image format.
+    """
+    return url.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+
+
+async def send_to_telegram(formatted_ideas: List[Tuple[Optional[str], str]]) -> None:
     """
     Send a message to the configured Telegram channel.
     
     Args:
-        message (str): The message to send
+        formatted_ideas (List[Tuple[Optional[str], str]]): List of (image_url, message) pairs.
         
     Raises:
         ValueError: If Telegram settings are not configured
@@ -37,24 +35,58 @@ async def send_to_telegram(message: str) -> None:
     if not settings.telegram_bot_token or not settings.telegram_channel_id:
         logger.error("Telegram settings not configured")
         raise ValueError("Telegram bot token and channel ID must be configured")
-    
+
     logger.info("Sending message to Telegram channel")
     bot = Bot(token=settings.telegram_bot_token)
+
     try:
-        await bot.send_message(
-            chat_id=settings.telegram_channel_id,
-            text=message,
-            parse_mode=ParseMode.HTML
-        )
-        logger.info("Message sent successfully")
-    except Exception as e:
-        logger.error(f"Failed to send message: {str(e)}")
-        raise
+        for image_url, message in formatted_ideas:
+            try:
+                if not image_url:
+                    logger.info("No image URL provided for idea")
+                    raise ValueError("Missing image URL")
+
+                if not is_direct_image_url(str(image_url)):
+                    logger.info(f"Image URL rejected (not a direct image): {image_url}")
+                    raise ValueError("Unsupported image format")
+
+                await bot.send_photo(
+                    chat_id=settings.telegram_channel_id,
+                    photo=str(image_url),
+                    caption=message,
+                    parse_mode=ParseMode.HTML
+                )
+                logger.info("Sent photo + caption")
+
+            except TelegramBadRequest as tg_err:
+                if "wrong type of the web page content" in str(tg_err):
+                    logger.error(f"Telegram rejected image URL due to bad content: {image_url}")
+                else:
+                    logger.error(f"TelegramBadRequest: {tg_err}")
+                logger.warning("Falling back to text message")
+                await bot.send_message(
+                    chat_id=settings.telegram_channel_id,
+                    text=message,
+                    parse_mode=ParseMode.HTML
+                )
+                logger.info("Sent text message")
+
+            except Exception as e:
+                logger.warning(f"Falling back to text message due to exception: {e}")
+                if image_url:
+                    logger.debug(f"Problematic image URL: {image_url}")
+                await bot.send_message(
+                    chat_id=settings.telegram_channel_id,
+                    text=message,
+                    parse_mode=ParseMode.HTML
+                )
+                logger.info("Sent text message")
+
     finally:
         await bot.session.close()
 
 
-def format_travel_ideas(ideas: FlightAgentOutput) -> str:
+def format_travel_ideas(ideas: FlightAgentOutput) -> List[Tuple[Optional[str], str]]:
     """
     Format travel ideas as an HTML message.
     
@@ -62,16 +94,17 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         ideas (FlightAgentOutput): The travel ideas from the AI agent
         
     Returns:
-        str: Formatted HTML message
+        List[Tuple[Optional[str], str]]: A list of image_url + HTML message pairs
     """
     logger.info("Formatting travel ideas as HTML message")
-    message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
-    
+    # message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
+    formatted = []
+
     for idea in ideas.ideas:
-        message += f"<b>{idea.header}</b>\n"
+        message = f"<b>{idea.header}</b>\n"
         message += f"<i>{idea.motivation}</i>\n\n"
         message += f"{idea.destination_description}\n\n"
-        
+
         summary = idea.travel_summary
         message += "<b>Travel Details:</b>\n"
         message += f"📍 From: {summary.starting_point}\n"
@@ -80,33 +113,35 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
         if summary.flight_number:
             message += f"🔢 Flight: {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n\n"
-        message += "➖➖➖➖➖➖➖➖➖➖\n\n"
-    
+        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n"
+
+        formatted.append((idea.image_url, message))
+
     logger.info("Message formatting completed")
-    return message
+
+    return formatted
 
 
 async def main() -> None:
     """Main function to run the telegram sender."""
     try:
         logger.info("Starting telegram sender")
-        
+
         # Initialize AI agent
         logger.info("Initializing AI agent")
         agent = AiAgent()
-        
+
         # Get travel ideas
         logger.info("Getting travel ideas from AI agent")
         ideas = await agent.run_agent(PROMPT)
         # Format and send message
         logger.info("Formatting and sending message")
-        message = format_travel_ideas(ideas)
-        await send_to_telegram(message)
-        
+        formatted_ideas = format_travel_ideas(ideas)
+        await send_to_telegram(formatted_ideas)
+
         logger.info("Successfully completed telegram sender execution")
         print("Successfully sent travel ideas to Telegram channel")
-        
+
     except Exception as e:
         logger.error(f"Error in telegram sender: {str(e)}")
         print(f"Error: {str(e)}", file=sys.stderr)
@@ -114,4 +149,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

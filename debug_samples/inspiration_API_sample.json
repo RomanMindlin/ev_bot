@@ -1,0 +1,305 @@
+{
+  "data": [
+    {
+      "type": "flight-destination",
+      "origin": "XOC",
+      "destination": "YJB",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "87.0"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=XOC&destination=YJB&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=XOC&destinationLocationCode=YJB&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "LPA",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "98.62"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=LPA&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=LPA&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "LIS",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "134.65"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=LIS&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=LIS&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "ORY",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "161.68"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=ORY&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=ORY&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "AMS",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "172.85"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=AMS&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=AMS&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "LIS",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "199.76"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=LIS&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=LIS&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "MXP",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "216.07"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=MXP&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=MXP&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "MAH",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "228.54"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=MAH&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=MAH&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "LIS",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "299.34"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=LIS&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=LIS&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "FCO",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "303.19"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=FCO&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=FCO&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "LGW",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "322.16"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=LGW&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=LGW&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "FCO",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "438.48"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=FCO&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=FCO&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "DOH",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "596.32"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=DOH&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=DOH&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "FCO",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "597.48"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=FCO&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=FCO&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "ATL",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "724.4"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=ATL&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=ATL&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    },
+    {
+      "type": "flight-destination",
+      "origin": "MAD",
+      "destination": "CUN",
+      "departureDate": "2025-05-29",
+      "returnDate": "2025-06-03",
+      "price": {
+        "total": "824.94"
+      },
+      "links": {
+        "flightDates": "https://test.api.amadeus.com/v1/shopping/flight-dates?origin=MAD&destination=CUN&departureDate=2025-05-29,2025-06-03&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY",
+        "flightOffers": "https://test.api.amadeus.com/v1/shopping/flight-offers?originLocationCode=MAD&destinationLocationCode=CUN&departureDate=2025-05-29&returnDate=2025-06-03&adults=1&duration=5&nonStop=false&viewBy=COUNTRY"
+      }
+    }
+  ],
+  "dictionaries": {
+    "currencies": {
+      "EUR": "Euro"
+    },
+    "locations": {
+      "MXP": {
+        "subType": "AIRPORT",
+        "detailedName": "MALPENSA"
+      },
+      "AMS": {
+        "subType": "AIRPORT",
+        "detailedName": "SCHIPHOL AIRPORT"
+      },
+      "XOC": {
+        "subType": "AIRPORT",
+        "detailedName": "ATOCHA RAILWAY STN"
+      },
+      "YJB": {
+        "subType": "AIRPORT",
+        "detailedName": "SANTS RAILWAY STN"
+      },
+      "MAD": {
+        "subType": "AIRPORT",
+        "detailedName": "ADOLFO SUAREZ BARAJAS"
+      },
+      "FCO": {
+        "subType": "AIRPORT",
+        "detailedName": "FIUMICINO"
+      },
+      "MAH": {
+        "subType": "AIRPORT",
+        "detailedName": null
+      },
+      "LIS": {
+        "subType": "AIRPORT",
+        "detailedName": "AIRPORT"
+      },
+      "ORY": {
+        "subType": "AIRPORT",
+        "detailedName": "ORLY"
+      },
+      "ATL": {
+        "subType": "AIRPORT",
+        "detailedName": "HARTSFIELD-JACKSON INT"
+      },
+      "LPA": {
+        "subType": "AIRPORT",
+        "detailedName": "GRAN CANARIA"
+      },
+      "DOH": {
+        "subType": "AIRPORT",
+        "detailedName": "HAMAD INTERNATIONAL"
+      },
+      "LGW": {
+        "subType": "AIRPORT",
+        "detailedName": "GATWICK"
+      },
+      "CUN": {
+        "subType": "AIRPORT",
+        "detailedName": "INTERNATIONAL"
+      }
+    }
+  },
+  "meta": {
+    "currency": "EUR",
+    "links": {
+      "self": "https://test.api.amadeus.com/v1/shopping/flight-destinations?origin=MAD&departureDate=2025-05-29&oneWay=false&duration=5&nonStop=false&viewBy=COUNTRY"
+    },
+    "defaults": {
+      "departureDate": "290525",
+      "oneWay": false,
+      "duration": "5",
+      "nonStop": false,
+      "viewBy": "COUNTRY"
+    }
+  },
+  "warnings": []
+}
