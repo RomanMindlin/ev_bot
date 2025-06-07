@@ -77,11 +77,19 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += f"📍 From: {summary.starting_point}\n"
         message += f"✈️ To: {summary.destination}\n"
         message += f"📅 Dates: {summary.travel_dates_str}\n"
-        message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
+        message += f"💰 Flight Price: {summary.flight_price}\n"
         if summary.flight_number:
             message += f"🔢 Flight: {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n\n"
-        message += "➖➖➖➖➖➖➖➖➖➖\n\n"
+        message += f"🔗 <a href='{summary.booking_link}'>Book Flight</a>\n\n"
+        
+        if summary.hotel:
+            message += "<b>🏨 Recommended Hotel:</b>\n"
+            message += f"📌 {summary.hotel.name}\n"
+            message += f"⭐️ Rating: {summary.hotel.rating}\n"
+            message += f"💰 Price: {summary.hotel.price}\n"
+            message += f"🔗 <a href='{summary.hotel.booking_link}'>Book Hotel</a>\n"
+        
+        message += "\n➖➖➖➖➖➖➖➖➖➖\n\n"
     
     logger.info("Message formatting completed")
     return message

@@ -19,11 +19,23 @@ MODEL = OpenAIModel(
 )
 SYSTEM_PROMPT = """You are a helpful AI assistant that specializes in travel planning and booking.
 Your job is to retrieve a list of flights available from the user's location, 
-analyze the retrieved data, and return three best travel ideas.
+analyze the retrieved data, and return best travel ideas.
 
 You have access to the following tools:
 - search_flight_inspiration: Searches for flight inspiration from the user's location for the next week.
   Returns a list of possible destinations with prices and other details.
+- search_hotel_offers: Searches for hotel offers in a specific city for given dates.
+  Returns a list of available hotels with prices and details.
+  Returns None if no hotels are found for the given city and dates.
+
+Your task is to:
+1. First, get flight inspirations and analyze them to find the best travel options
+2. For each potential travel idea, search for hotels using the destination city code and travel dates
+3. If hotels are found (result is not None), include the best hotel option in the travel idea
+4. If no hotels are found (result is None), try another destination until you have 3 complete travel ideas
+5. Don't try to search for hotels in the same city more than once
+6. If you can't find hotels for enough destinations, include the remaining ideas without hotels to complete the list of 3
+7. Don't stop until yuo have at least 3 complete travel ideas with all required information or no ideas left to process
 
 Each travel idea must follow this structure:
         {
@@ -38,14 +50,29 @@ Each travel idea must follow this structure:
             "travel_dates_str": "...", #travel dates as a string
             "travel_start_date": "...", #travel start date
             "travel_end_date": "...", #travel end date
-            "booking_link": "..." #URL to purchase tickets
+            "booking_link": "...", #URL to purchase tickets
+            "hotel": {
+              "name": "...", #hotel name
+              "price": "...", #hotel price per night
+              "rating": "...", #hotel rating
+              "address": "...", #hotel address
+              "booking_link": "..." #URL to book the hotel
+            }
           }
         }
     
-Return a JSON object with a top-level "ideas" key containing a list of 3 ideas.
+Return a JSON object with a top-level "ideas" key containing a list of ideas.
 
 Return only valid JSON. Do not include any markdown, code block delimiters, or extra commentary.
   """
+
+
+class HotelInfo(BaseModel):
+    name: str
+    price: str
+    rating: str
+    address: str
+    booking_link: HttpUrl
 
 
 class TravelSummary(BaseModel):
@@ -57,6 +84,7 @@ class TravelSummary(BaseModel):
     travel_start_date: datetime
     travel_end_date: datetime
     booking_link: HttpUrl
+    hotel: HotelInfo | None = None
 
 
 class TravelIdea(BaseModel):
@@ -77,10 +105,11 @@ class AiAgent:
         """Initialize the AI agent with model and system prompt."""
         logger.info("Initializing AiAgent")
 
-        # Register the flight inspiration search tool
-        logger.info("Registering flight inspiration search tool")
+        # Register the tools
+        logger.info("Registering tools")
         tools = [
-            Tool(self._search_flight_inspiration)
+            Tool(self._search_flight_inspiration),
+            Tool(self._search_hotel_offers)
         ]
 
         self.agent = Agent(
@@ -96,6 +125,45 @@ class AiAgent:
         )
 
         logger.info("AiAgent initialized successfully")
+
+    def _search_hotel_offers(self, city_code: str, check_in: str, check_out: str) -> Dict[str, Any] | None:
+        """
+        Search for hotel offers in a specific city for given dates.
+        
+        Args:
+            city_code (str): The city code to search in
+            check_in (str): Check-in date in YYYY-MM-DD format
+            check_out (str): Check-out date in YYYY-MM-DD format
+            
+        Returns:
+            Dict[str, Any]: Hotel offers search results
+        """
+        logger.info(f"Searching for hotel offers in {city_code} from {check_in} to {check_out}")
+        try:
+            hotels = self.amadeus.reference_data.locations.hotels.by_city.get(
+                cityCode=city_code,
+                radius=5,
+                radiusUnit='KM',
+                ratings=['2', '3', '4'],
+                hotelSource='ALL'
+            )
+
+            hotel_codes = [hotel['hotelId'] for hotel in hotels.data]
+
+            result = self.amadeus.shopping.hotel_offers_search.get(
+                hotelIds=hotel_codes,
+                checkInDate=check_in,
+                checkOutDate=check_out,
+                adults=2,
+                paymentPolicy='NONE',
+                includeClosed=False,
+                bestRateOnly=True
+            )
+            logger.info(f"Found {len(result.data)} hotel offers")
+            return result.data
+        except ResponseError as e:
+            logger.error(f"Hotel offers search failed with status {e.response.status_code}: {e.response.body}")
+            return None
 
     def _search_flight_inspiration(self) -> Dict[str, Any]:
         """
