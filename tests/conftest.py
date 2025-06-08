@@ -65,7 +65,7 @@ def ai_agent():
          patch("ev_bot.ai_agent.OpenAIModel") as mock_openai_model, \
          patch("ev_bot.ai_agent.Agent") as mock_agent:
         from pydantic import HttpUrl
-        from ev_bot.ai_agent import AiAgent, TravelIdea, TravelSummary, FlightAgentOutput
+        from ev_bot.flight_agent import AiAgent, TravelIdea, TravelSummary, FlightAgentOutput
         # Setup mock for Amadeus
         mock_client.return_value.shopping.flight_destinations.get.return_value = {
             "data": [{
@@ -87,7 +87,7 @@ def ai_agent():
 @pytest.fixture
 def mock_flight_agent_output():
     from pydantic import HttpUrl
-    from ev_bot.ai_agent import FlightAgentOutput, TravelIdea, TravelSummary
+    from ev_bot.flight_agent import FlightAgentOutput, TravelIdea, TravelSummary
     mock_travel_summary = TravelSummary(
         flight_price="500",
         starting_point="NYC",

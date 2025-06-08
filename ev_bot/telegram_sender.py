@@ -4,10 +4,10 @@ from aiogram import Bot
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from ev_bot.settings import settings
-from ev_bot.ai_agent import AiAgent, FlightAgentOutput
+# from ev_bot.flight_agent import AiAgent, FlightAgentOutput
 from ev_bot.logger import setup_logger
 from typing import List, Tuple, Optional
-
+from ev_bot.agent_orchestration import agent_orchestration
 
 logger = setup_logger("telegram_sender")
 
@@ -86,39 +86,48 @@ async def send_to_telegram(formatted_ideas: List[Tuple[Optional[str], str]]) -> 
         await bot.session.close()
 
 
-def format_travel_ideas(ideas: FlightAgentOutput) -> List[Tuple[Optional[str], str]]:
+def format_combined_ideas(combined_suggestions: List[dict]) -> List[Tuple[Optional[str], str]]:
     """
-    Format travel ideas as an HTML message.
-    
-    Args:
-        ideas (FlightAgentOutput): The travel ideas from the AI agent
-        
-    Returns:
-        List[Tuple[Optional[str], str]]: A list of image_url + HTML message pairs
+    Format combined flight + hotel suggestions into HTML messages.
     """
-    logger.info("Formatting travel ideas as HTML message")
-    # message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
     formatted = []
 
-    for idea in ideas.ideas:
-        message = f"<b>{idea.header}</b>\n"
-        message += f"<i>{idea.motivation}</i>\n\n"
-        message += f"{idea.destination_description}\n\n"
+    logger.info(f"Formatting {len(combined_suggestions)} travel ideas")
 
-        summary = idea.travel_summary
+    for idx, entry in enumerate(combined_suggestions, start=1):
+        idea = entry["travel_idea"]
+        hotels = entry["hotels"]
+
+        logger.info(f"Formatting idea #{idx}: {idea.get('header')} → {idea['travel_summary']['destination']}")
+
+        message = f"<b>{idea['header']}</b>\n"
+        message += f"<i>{idea['motivation']}</i>\n\n"
+        message += f"{idea['destination_description']}\n\n"
+
+        summary = idea["travel_summary"]
         message += "<b>Travel Details:</b>\n"
-        message += f"📍 From: {summary.starting_point}\n"
-        message += f"✈️ To: {summary.destination}\n"
-        message += f"📅 Dates: {summary.travel_dates}\n"
-        message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
-        if summary.flight_number:
-            message += f"🔢 Flight: {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n"
+        message += f"📍 From: {summary['starting_point']}\n"
+        message += f"✈️ To: {summary['destination']}\n"
+        message += f"📅 Dates: {summary['travel_dates']}\n"
+        message += f"💰 Price: {summary['flight_price']} {settings.currency}\n"
+        if summary.get("flight_number"):
+            message += f"🔢 Flight: {summary['flight_number']}\n"
+        message += f"🔗 <a href='{summary['booking_link']}'>Book Flight</a>\n\n"
 
-        formatted.append((idea.image_url, message))
+        if hotels:
+            message += "<b>🏨 Hotel Options:</b>\n"
+            for hotel in hotels:
+                message += f"• {hotel['hotel_name']} ({hotel.get('rating', 'N/A')}⭐)\n"
+                message += f"  💵 {hotel['total_price']} {settings.currency}\n"
+                message += f"  📍 {hotel['address']}\n"
+                message += f"  🔗 <a href='{hotel['booking_link']}'>Book Hotel</a>\n\n"
+        else:
+            logger.warning(f"No hotels found for destination: {summary['destination']} ({summary['destination_code']})")
+            message += "⚠️ No hotel offers found.\n"
+
+        formatted.append((idea.get("image_url"), message))
 
     logger.info("Message formatting completed")
-
     return formatted
 
 
@@ -127,20 +136,17 @@ async def main() -> None:
     try:
         logger.info("Starting telegram sender")
 
-        # Initialize AI agent
-        logger.info("Initializing AI agent")
-        agent = AiAgent()
+        logger.info("Running multi-agent travel LangGraph")
+        result = await agent_orchestration(PROMPT)
 
-        # Get travel ideas
-        logger.info("Getting travel ideas from AI agent")
-        ideas = await agent.run_agent(PROMPT)
-        # Format and send message
-        logger.info("Formatting and sending message")
-        formatted_ideas = format_travel_ideas(ideas)
+        logger.info("Formatting travel + hotel ideas for Telegram")
+        formatted_ideas = format_combined_ideas(result["combined_suggestions"])
+
+        logger.info(f"Sending {len(formatted_ideas)} messages to Telegram")
         await send_to_telegram(formatted_ideas)
 
         logger.info("Successfully completed telegram sender execution")
-        print("Successfully sent travel ideas to Telegram channel")
+        print("Successfully sent travel and hotel ideas to Telegram channel")
 
     except Exception as e:
         logger.error(f"Error in telegram sender: {str(e)}")

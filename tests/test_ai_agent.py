@@ -31,7 +31,7 @@ mock_agent_instance = Mock()
 mock_agent_instance.run = AsyncMock(return_value=mock_response)
 mock_agent.return_value = mock_agent_instance
 
-from ev_bot.ai_agent import AiAgent, TravelSummary, TravelIdea, FlightAgentOutput
+from ev_bot.flight_agent import AiAgent, TravelSummary, TravelIdea, FlightAgentOutput
 
 @pytest.fixture
 def ai_agent():

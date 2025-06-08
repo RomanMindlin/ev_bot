@@ -1,5 +1,4 @@
 import json
-import requests
 from typing import Dict, Any, Optional
 from amadeus import Client, ResponseError
 from pydantic import BaseModel, HttpUrl, Field
@@ -8,6 +7,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from ev_bot.settings import settings
 from ev_bot.logger import setup_logger
+from ev_bot.shared_tools import get_wikipedia_image
 from datetime import datetime, timedelta
 
 logger = setup_logger("ai_agent")
@@ -50,33 +50,21 @@ class TravelSummary(BaseModel):
         default=None,
         description="Flight number (optional)"
     )
-    flight_price: str = Field(
-        description="Price of the flight tickets"
-    )
-    starting_point: str = Field(
-        description="City name for origin"
-    )
-    destination: str = Field(
-        description="City name for destination"
-    )
-    travel_dates: str = Field(
-        description="Travel dates as a string"
-    )
-    booking_link: HttpUrl = Field(
-        description="URL to purchase the flight tickets"
-    )
+    flight_price: str = Field(description="Price of the flight tickets")
+    starting_point: str = Field(description="City name for origin")
+    starting_point_code: str = Field(description="IATA code for origin")
+    destination: str = Field(description="City name for destination")
+    destination_code: str = Field(description="IATA code for destination")
+    travel_dates: str = Field(description="Travel dates as a string")
+    travel_start_date: datetime = Field(description="Travel START date")
+    travel_end_date: datetime = Field(description="Travel END date")
+    booking_link: HttpUrl = Field(description="URL to purchase the flight tickets")
 
 
 class TravelIdea(BaseModel):
-    header: str = Field(
-        description="A catchy title for the travel idea"
-    )
-    motivation: str = Field(
-        description="A reason or hook for visiting the destination"
-    )
-    destination_description: str = Field(
-        description="A short description of the destination"
-    )
+    header: str = Field(description="A catchy title for the travel idea")
+    motivation: str = Field(description="A reason or hook for visiting the destination")
+    destination_description: str = Field(description="A short description of the destination")
     travel_summary: TravelSummary
     image_url: Optional[HttpUrl] = Field(
         default=None,
@@ -88,48 +76,13 @@ class FlightAgentOutput(BaseModel):
     ideas: list[TravelIdea]
 
 
-def get_wikipedia_image(destination: str) -> Optional[str]:
-    """
-    Retrieves a thumbnail image URL for a travel destination from Wikipedia.
-
-    Args:
-        destination (str): Name of the city or point of interest.
-
-    Returns:
-        str | None: Image URL if found, otherwise None.
-    """
-    api_url = "https://en.wikipedia.org/w/api.php"
-    params = {
-        "action": "query",
-        "format": "json",
-        "titles": destination,
-        "prop": "pageimages",
-        "pithumbsize": 600
-    }
-    logger.info(f"Fetching Wikipedia image for: {destination}")
-    try:
-        response = requests.get(api_url, params=params)
-        response.raise_for_status()
-        pages = response.json().get("query", {}).get("pages", {})
-        for page in pages.values():
-            if "thumbnail" in page:
-                logger.info(f"Found image URL: {page['thumbnail']['source']}")
-                return page["thumbnail"]["source"]
-    except requests.RequestException as e:
-        logger.error(f"Wikipedia image search failed: {e}")
-    logger.info(f"Image not found for destination: {destination}")
-    return None
-
-
-class AiAgent:
-    """AI Agent for processing travel-related prompts using pydantic_ai."""
+class FlightAgent:
+    """Agent for processing flight offers and create travel ideas."""
 
     def __init__(self):
-        """Initialize the AI agent with model and system prompt."""
-        logger.info("Initializing AiAgent")
+        """Initialize the Flight agent with model and system prompt."""
+        logger.info("Initializing FlightAgent")
 
-        # Register the flight inspiration search tool
-        logger.info("Registering flight inspiration search tool")
         tools = [
             Tool(self._search_flight_inspiration),
             Tool(get_wikipedia_image)
@@ -147,7 +100,7 @@ class AiAgent:
             hostname=settings.environment
         )
 
-        logger.info("AiAgent initialized successfully")
+        logger.info("FlightAgent initialized successfully")
 
     def _search_flight_inspiration(self) -> Dict[str, Any]:
         """
@@ -198,8 +151,8 @@ class AiAgent:
         Raises:
             ValueError: If the agent's response is not valid JSON
         """
-        logger.info("Running AI agent with prompt")
-        logger.info(f"Prompt passed to agent: {prompt}")
+        logger.info("Running FlightAgent with prompt")
+        logger.info(f"Prompt passed to FlightAgent: {prompt}")
         try:
             result = await self.agent.run(prompt)
 
@@ -208,7 +161,7 @@ class AiAgent:
             else:
                 # Otherwise, treat as string and parse
                 raw_output = str(result.output).strip()
-                logger.info(f"Raw agent output: {raw_output}")
+                logger.info(f"Raw FlightAgent output: {raw_output}")
 
                 # Remove Markdown-style code block
                 if raw_output.startswith("```json"):
@@ -222,5 +175,5 @@ class AiAgent:
             logger.info(f"Parsed travel ideas: {structured.model_dump_json(indent=2)}")
             return structured
         except Exception as e:
-            logger.error(f"Agent run failed: {str(e)}")
+            logger.error(f"FlightAgent run failed: {str(e)}")
             raise
