@@ -1,5 +1,6 @@
 from typing import Dict, Any
-from amadeus import Client, ResponseError
+from amadeus import Client as AmadeusClient, ResponseError
+from travelpayouts import Client as TravelPayoutsClient
 from pydantic import BaseModel, HttpUrl
 from pydantic_ai import Agent, Tool
 from pydantic_ai.models.openai import OpenAIModel
@@ -118,10 +119,14 @@ class AiAgent:
             tools=tools,
             output_type=FlightAgentOutput
         )
-        self.amadeus = Client(
+        self.amadeus = AmadeusClient(
             client_id=settings.client_id,
             client_secret=settings.client_secret,
             hostname=settings.environment
+        )
+        self.travelpayouts = TravelPayoutsClient(
+            settings.travelpayouts_token,
+            settings.travelpayouts_marker
         )
 
         logger.info("AiAgent initialized successfully")
@@ -144,30 +149,44 @@ class AiAgent:
                 cityCode=city_code,
                 radius=5,
                 radiusUnit='KM',
-                ratings=['2', '3', '4'],
+                # ratings=['2', '3', '4'],
                 hotelSource='ALL'
             )
 
-            hotel_codes = [hotel['hotelId'] for hotel in hotels.data]
+            hotel_codes = [hotel['hotelId'] for hotel in hotels.data[:20]]
 
             result = self.amadeus.shopping.hotel_offers_search.get(
                 hotelIds=hotel_codes,
                 checkInDate=check_in,
                 checkOutDate=check_out,
+                currency=settings.currency or 'EUR',
                 adults=2,
                 paymentPolicy='NONE',
                 includeClosed=False,
                 bestRateOnly=True
             )
             logger.info(f"Found {len(result.data)} hotel offers")
-            return result.data
+            
+            summarized = []
+            for hotel in result.data[:3]:
+                offer = hotel['offers'][0] if hotel.get('offers') else None
+                if offer and offer.get('price', {}).get('total'):
+                    summarized.append({
+                        'name': hotel.get('hotel', {}).get('name', 'Unknown'),
+                        'price': offer.get('price', {}).get('total'),
+                        'currency': offer.get('price', {}).get('currency', 'EUR'),
+                        'checkIn': offer.get('checkInDate'),
+                        'checkOut': offer.get('checkOutDate')
+                    })
+            
+            return summarized if summarized else None
         except ResponseError as e:
             logger.error(f"Hotel offers search failed with status {e.response.status_code}: {e.response.body}")
             return None
 
     def _search_flight_inspiration(self) -> Dict[str, Any]:
         """
-        Search for flight inspiration for the next week.
+        Search for flight inspiration for the next week using TravelPayouts API.
         
         Returns:
             Dict[str, Any]: Flight inspiration search results
@@ -176,19 +195,46 @@ class AiAgent:
         # Calculate dates for next week
         today = datetime.now()
         departure_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+        return_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
 
         try:
-            # Search for flight inspiration
-            result = self.amadeus.shopping.flight_destinations.get(
+            # Use prices_for_dates to get flight prices for various destinations
+            # This doesn't require a destination - it returns prices for multiple destinations
+            result = self.travelpayouts.prices_for_dates(
                 origin=settings.origin,
-                oneWay=False,
-                nonStop=True,
-                departureDate=departure_date
+                departure_at=departure_date,
+                return_at=return_date,
+                currency=settings.currency or 'EUR',
+                unique=True,
+                limit=10
             )
-            logger.info(f"Found {len(result.data)} flight inspirations")
-            return result.data
-        except ResponseError as e:
-            logger.error(f"Flight inspiration search failed with status {e.response.status_code}: {e.response.body}")
+            
+            # Handle different response formats
+            if isinstance(result, dict):
+                data = result.get('data', result)
+            else:
+                data = result
+            
+            # Ensure we return a list
+            if not isinstance(data, list):
+                data = [data] if data else []
+            
+            summarized = []
+            for flight in data:
+                summarized.append({
+                    'origin': flight.get('origin'),
+                    'destination': flight.get('destination'),
+                    'departure_at': flight.get('departure_at'),
+                    'return_at': flight.get('return_at'),
+                    'price': flight.get('value') or flight.get('price'),
+                    'airline': flight.get('airline'),
+                    'flight_number': flight.get('flight_number')
+                })
+            
+            logger.info(f"Found {len(summarized)} flight inspirations")
+            return summarized
+        except Exception as e:
+            logger.error(f"Flight inspiration search failed: {str(e)}")
             raise
     
     async def run_agent(self, prompt: str) -> FlightAgentOutput:

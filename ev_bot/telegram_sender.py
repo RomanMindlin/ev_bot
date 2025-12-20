@@ -10,6 +10,109 @@ from ev_bot.logger import setup_logger
 logger = setup_logger("telegram_sender")
 
 
+# Translation dictionary for static text
+TRANSLATIONS = {
+    'english': {
+        'title': 'Travel Ideas for Next Week',
+        'travel_details': 'Travel Details:',
+        'from': 'From:',
+        'to': 'To:',
+        'dates': 'Dates:',
+        'flight_price': 'Flight Price:',
+        'flight': 'Flight:',
+        'book_flight': 'Book Flight',
+        'recommended_hotel': 'Recommended Hotel:',
+        'rating': 'Rating:',
+        'price': 'Price:',
+        'book_hotel': 'Book Hotel'
+    },
+    'spanish': {
+        'title': 'Ideas de Viaje para la Próxima Semana',
+        'travel_details': 'Detalles del Viaje:',
+        'from': 'Desde:',
+        'to': 'Hasta:',
+        'dates': 'Fechas:',
+        'flight_price': 'Precio del Vuelo:',
+        'flight': 'Vuelo:',
+        'book_flight': 'Reservar Vuelo',
+        'recommended_hotel': 'Hotel Recomendado:',
+        'rating': 'Valoración:',
+        'price': 'Precio:',
+        'book_hotel': 'Reservar Hotel'
+    },
+    'french': {
+        'title': 'Idées de Voyage pour la Semaine Prochaine',
+        'travel_details': 'Détails du Voyage:',
+        'from': 'De:',
+        'to': 'À:',
+        'dates': 'Dates:',
+        'flight_price': 'Prix du Vol:',
+        'flight': 'Vol:',
+        'book_flight': 'Réserver le Vol',
+        'recommended_hotel': 'Hôtel Recommandé:',
+        'rating': 'Note:',
+        'price': 'Prix:',
+        'book_hotel': 'Réserver l\'Hôtel'
+    },
+    'german': {
+        'title': 'Reiseideen für die Nächste Woche',
+        'travel_details': 'Reisedetails:',
+        'from': 'Von:',
+        'to': 'Nach:',
+        'dates': 'Daten:',
+        'flight_price': 'Flugpreis:',
+        'flight': 'Flug:',
+        'book_flight': 'Flug Buchen',
+        'recommended_hotel': 'Empfohlenes Hotel:',
+        'rating': 'Bewertung:',
+        'price': 'Preis:',
+        'book_hotel': 'Hotel Buchen'
+    },
+    'italian': {
+        'title': 'Idee di Viaggio per la Prossima Settimana',
+        'travel_details': 'Dettagli del Viaggio:',
+        'from': 'Da:',
+        'to': 'A:',
+        'dates': 'Date:',
+        'flight_price': 'Prezzo del Volo:',
+        'flight': 'Volo:',
+        'book_flight': 'Prenota Volo',
+        'recommended_hotel': 'Hotel Consigliato:',
+        'rating': 'Valutazione:',
+        'price': 'Prezzo:',
+        'book_hotel': 'Prenota Hotel'
+    },
+    'russian': {
+        'title': 'Идеи Путешествий на Следующую Неделю',
+        'travel_details': 'Детали Поездки:',
+        'from': 'Откуда:',
+        'to': 'Куда:',
+        'dates': 'Даты:',
+        'flight_price': 'Цена Билета:',
+        'flight': 'Рейс:',
+        'book_flight': 'Забронировать Билет',
+        'recommended_hotel': 'Рекомендуемый Отель:',
+        'rating': 'Рейтинг:',
+        'price': 'Цена:',
+        'book_hotel': 'Забронировать Отель'
+    }
+}
+
+
+def get_translations(language: str = None) -> dict:
+    """
+    Get translations for the specified language.
+    
+    Args:
+        language (str): Full language name (e.g., 'English', 'Spanish', 'Russian')
+        
+    Returns:
+        dict: Translation dictionary for the language, defaults to English
+    """
+    lang_key = language.lower()
+    return TRANSLATIONS.get(lang_key, TRANSLATIONS['english'])
+
+
 # Constant prompt for the AI agent
 PROMPT = f"""Please analyze available flights and suggest three best travel ideas for the next week.
 Best here means chippest, most interesting, or most unique destinations based on current flight data.
@@ -57,16 +160,18 @@ async def send_to_telegram(message: str) -> None:
 
 def format_travel_ideas(ideas: FlightAgentOutput) -> str:
     """
-    Format travel ideas as an HTML message.
+    Format travel ideas as an HTML message with translations.
     
     Args:
         ideas (FlightAgentOutput): The travel ideas from the AI agent
         
     Returns:
-        str: Formatted HTML message
+        str: Formatted HTML message in the target language
     """
     logger.info("Formatting travel ideas as HTML message")
-    message = "<b>🌟 Travel Ideas for Next Week 🌟</b>\n\n"
+    t = get_translations(settings.language)
+    
+    message = f"<b>🌟 {t['title']} 🌟</b>\n\n"
     
     for idea in ideas.ideas:
         message += f"<b>{idea.header}</b>\n"
@@ -74,21 +179,21 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += f"{idea.destination_description}\n\n"
         
         summary = idea.travel_summary
-        message += "<b>Travel Details:</b>\n"
-        message += f"📍 From: {summary.starting_point}\n"
-        message += f"✈️ To: {summary.destination}\n"
-        message += f"📅 Dates: {summary.travel_dates_str}\n"
-        message += f"💰 Flight Price: {summary.flight_price}\n"
+        message += f"<b>{t['travel_details']}</b>\n"
+        message += f"📍 {t['from']} {summary.starting_point}\n"
+        message += f"✈️ {t['to']} {summary.destination}\n"
+        message += f"📅 {t['dates']} {summary.travel_dates_str}\n"
+        message += f"💰 {t['flight_price']} {summary.flight_price}\n"
         if summary.flight_number:
-            message += f"🔢 Flight: {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>Book Flight</a>\n\n"
+            message += f"🔢 {t['flight']} {summary.flight_number}\n"
+        message += f"🔗 <a href='{summary.booking_link}'>{t['book_flight']}</a>\n\n"
         
         if summary.hotel:
-            message += "<b>🏨 Recommended Hotel:</b>\n"
+            message += f"<b>🏨 {t['recommended_hotel']}</b>\n"
             message += f"📌 {summary.hotel.name}\n"
-            message += f"⭐️ Rating: {summary.hotel.rating}\n"
-            message += f"💰 Price: {summary.hotel.price}\n"
-            message += f"🔗 <a href='{summary.hotel.booking_link}'>Book Hotel</a>\n"
+            message += f"⭐️ {t['rating']} {summary.hotel.rating}\n"
+            message += f"💰 {t['price']} {summary.hotel.price}\n"
+            # message += f"🔗 <a href='{summary.hotel.booking_link}'>{t['book_hotel']}</a>\n"
         
         message += "\n➖➖➖➖➖➖➖➖➖➖\n\n"
     

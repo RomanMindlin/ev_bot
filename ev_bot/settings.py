@@ -4,12 +4,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Amadeus API settings and configuration."""
-    
     # Environment Configuration
     environment: str = Field("test", alias="ENVIRONMENT")
-    
-    # API Credentials
+
+    # Amadeus API settings and configuration
+    base_url: str = Field(
+        "https://test.api.amadeus.com/v1",
+        description="Base URL for Amadeus API endpoints"
+    )
+    auth_url: str = Field(
+        "https://test.api.amadeus.com/v1/security/oauth2/token",
+        description="URL for authentication endpoint"
+    )
+
     prod_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
     prod_client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
     test_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID_TEST")
@@ -25,6 +32,11 @@ class Settings(BaseSettings):
     def client_secret(self) -> Optional[str]:
         return self.test_client_secret if self.environment == "test" else self.prod_client_secret
 
+    # TravelPayouts API settings
+    travelpayouts_token: Optional[str] = Field(None, alias="TRAVELPAYOUTS_TOKEN")
+    travelpayouts_marker: Optional[str] = Field(None, alias="TRAVELPAYOUTS_MARKER")
+
+    # OpenAI API Key
     openai_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
     
     # Telegram Settings
@@ -49,16 +61,6 @@ class Settings(BaseSettings):
         "EUR",
         alias="CURRENCY",
         description="Currency for API responses"
-    )
-    
-    # API URLs
-    base_url: str = Field(
-        "https://test.api.amadeus.com/v1",
-        description="Base URL for Amadeus API endpoints"
-    )
-    auth_url: str = Field(
-        "https://test.api.amadeus.com/v1/security/oauth2/token",
-        description="URL for authentication endpoint"
     )
     
     # Retry Configuration
