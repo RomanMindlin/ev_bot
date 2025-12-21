@@ -1,5 +1,6 @@
 from typing import Dict, Any
-from amadeus import Client, ResponseError
+from amadeus import Client as AmadeusClient, ResponseError
+from travelpayouts import Client as TravelPayoutsClient
 from pydantic import BaseModel, HttpUrl
 from pydantic_ai import Agent, Tool
 from pydantic_ai.models.openai import OpenAIModel
@@ -7,6 +8,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from ev_bot.settings import settings
 from ev_bot.logger import setup_logger
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 logger = setup_logger("ai_agent")
 
@@ -50,13 +52,11 @@ Each travel idea must follow this structure:
             "travel_dates_str": "...", #travel dates as a string
             "travel_start_date": "...", #travel start date
             "travel_end_date": "...", #travel end date
-            "booking_link": "...", #URL to purchase tickets
             "hotel": {
               "name": "...", #hotel name
               "price": "...", #hotel price per night
               "rating": "...", #hotel rating
               "address": "...", #hotel address
-              "booking_link": "..." #URL to book the hotel
             }
           }
         }
@@ -72,7 +72,6 @@ class HotelInfo(BaseModel):
     price: str
     rating: str
     address: str
-    booking_link: HttpUrl
 
 
 class TravelSummary(BaseModel):
@@ -118,13 +117,56 @@ class AiAgent:
             tools=tools,
             output_type=FlightAgentOutput
         )
-        self.amadeus = Client(
+        self.amadeus = AmadeusClient(
             client_id=settings.client_id,
             client_secret=settings.client_secret,
             hostname=settings.environment
         )
+        self.travelpayouts = TravelPayoutsClient(
+            settings.travelpayouts_token,
+            settings.travelpayouts_marker
+        )
 
         logger.info("AiAgent initialized successfully")
+    
+    def _generate_flight_link(self, origin: str, destination: str, departure_date: str, return_date: str) -> str:
+        """
+        Generate TravelPayouts affiliate link for flight search.
+        
+        Args:
+            origin (str): Origin airport code
+            destination (str): Destination airport code
+            departure_date (str): Departure date in YYYY-MM-DD or ISO 8601 format
+            return_date (str): Return date in YYYY-MM-DD or ISO 8601 format
+            
+        Returns:
+            str: Affiliate link URL
+        """
+        base_url = "https://www.aviasales.com/search"
+        
+        # Extract date portion from ISO 8601 format if needed (e.g., "2025-12-27T12:10:00+02:00" -> "2025-12-27")
+        dep_date_str = departure_date.split('T')[0] if 'T' in departure_date else departure_date
+        ret_date_str = return_date.split('T')[0] if 'T' in return_date else return_date
+        
+        # Format: /search/ORIGIN[DDMM]DESTINATION[DDMM]1
+        # where DDMM is day and month
+        dep_date = datetime.strptime(dep_date_str, "%Y-%m-%d")
+        ret_date = datetime.strptime(ret_date_str, "%Y-%m-%d")
+        
+        dep_formatted = dep_date.strftime("%d%m")
+        ret_formatted = ret_date.strftime("%d%m")
+        
+        # Create search path
+        search_path = f"{origin}{dep_formatted}{destination}{ret_formatted}1"
+        
+        # Add marker parameter for affiliate tracking
+        params = {"marker": settings.travelpayouts_marker} if settings.travelpayouts_marker else {}
+        
+        url = f"{base_url}/{search_path}"
+        if params:
+            url += f"?{urlencode(params)}"
+        
+        return url
 
     def _search_hotel_offers(self, city_code: str, check_in: str, check_out: str) -> Dict[str, Any] | None:
         """
@@ -144,30 +186,44 @@ class AiAgent:
                 cityCode=city_code,
                 radius=5,
                 radiusUnit='KM',
-                ratings=['2', '3', '4'],
+                # ratings=['2', '3', '4'],
                 hotelSource='ALL'
             )
 
-            hotel_codes = [hotel['hotelId'] for hotel in hotels.data]
+            hotel_codes = [hotel['hotelId'] for hotel in hotels.data[:20]]
 
             result = self.amadeus.shopping.hotel_offers_search.get(
                 hotelIds=hotel_codes,
                 checkInDate=check_in,
                 checkOutDate=check_out,
+                currency=settings.currency or 'EUR',
                 adults=2,
                 paymentPolicy='NONE',
                 includeClosed=False,
                 bestRateOnly=True
             )
             logger.info(f"Found {len(result.data)} hotel offers")
-            return result.data
+            
+            summarized = []
+            for hotel in result.data[:3]:
+                offer = hotel['offers'][0] if hotel.get('offers') else None
+                if offer and offer.get('price', {}).get('total'):
+                    summarized.append({
+                        'name': hotel.get('hotel', {}).get('name', 'Unknown'),
+                        'price': offer.get('price', {}).get('total'),
+                        'currency': offer.get('price', {}).get('currency', 'EUR'),
+                        'checkIn': offer.get('checkInDate'),
+                        'checkOut': offer.get('checkOutDate')
+                    })
+            
+            return summarized if summarized else None
         except ResponseError as e:
             logger.error(f"Hotel offers search failed with status {e.response.status_code}: {e.response.body}")
             return None
 
     def _search_flight_inspiration(self) -> Dict[str, Any]:
         """
-        Search for flight inspiration for the next week.
+        Search for flight inspiration for the next week using TravelPayouts API.
         
         Returns:
             Dict[str, Any]: Flight inspiration search results
@@ -176,19 +232,60 @@ class AiAgent:
         # Calculate dates for next week
         today = datetime.now()
         departure_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+        return_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
 
         try:
-            # Search for flight inspiration
-            result = self.amadeus.shopping.flight_destinations.get(
+            # Use prices_for_dates to get flight prices for various destinations
+            # This doesn't require a destination - it returns prices for multiple destinations
+            result = self.travelpayouts.prices_for_dates(
                 origin=settings.origin,
-                oneWay=False,
-                nonStop=True,
-                departureDate=departure_date
+                departure_at=departure_date,
+                return_at=return_date,
+                currency=settings.currency or 'EUR',
+                unique=True,
+                limit=10
             )
-            logger.info(f"Found {len(result.data)} flight inspirations")
-            return result.data
-        except ResponseError as e:
-            logger.error(f"Flight inspiration search failed with status {e.response.status_code}: {e.response.body}")
+            
+            # Handle different response formats
+            if isinstance(result, dict):
+                data = result.get('data', result)
+            else:
+                data = result
+            
+            # Ensure we return a list
+            if not isinstance(data, list):
+                data = [data] if data else []
+            
+            summarized = []
+            for flight in data:
+                origin = flight.get('origin')
+                destination = flight.get('destination')
+                departure_at = flight.get('departure_at')
+                return_at = flight.get('return_at')
+                
+                # Generate affiliate link
+                booking_link = self._generate_flight_link(
+                    origin=origin,
+                    destination=destination,
+                    departure_date=departure_at,
+                    return_date=return_at
+                ) if origin and destination and departure_at and return_at else "https://www.aviasales.com"
+                
+                summarized.append({
+                    'origin': origin,
+                    'destination': destination,
+                    'departure_at': departure_at,
+                    'return_at': return_at,
+                    'price': flight.get('value') or flight.get('price'),
+                    'airline': flight.get('airline'),
+                    'flight_number': flight.get('flight_number'),
+                    'booking_link': booking_link
+                })
+            
+            logger.info(f"Found {len(summarized)} flight inspirations")
+            return summarized
+        except Exception as e:
+            logger.error(f"Flight inspiration search failed: {str(e)}")
             raise
     
     async def run_agent(self, prompt: str) -> FlightAgentOutput:
