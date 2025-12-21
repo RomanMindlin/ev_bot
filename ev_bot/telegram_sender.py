@@ -20,6 +20,7 @@ For each idea, provide:
 4. Travel details including flight price, dates, and booking link
 
 Please provide all text in {settings.language or 'English'} language and show prices in {settings.currency or 'EUR'} currency.
+Include currency symbols where appropriate. Don't try to translate the currency symbol, just use the symbol itself.
 
 Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
 
@@ -76,12 +77,20 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
         message += "<b>Travel Details:</b>\n"
         message += f"📍 From: {summary.starting_point}\n"
         message += f"✈️ To: {summary.destination}\n"
-        message += f"📅 Dates: {summary.travel_dates}\n"
-        message += f"💰 Price: {summary.flight_price} {settings.currency}\n"
+        message += f"📅 Dates: {summary.travel_dates_str}\n"
+        message += f"💰 Flight Price: {summary.flight_price}\n"
         if summary.flight_number:
             message += f"🔢 Flight: {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>Book Now</a>\n\n"
-        message += "➖➖➖➖➖➖➖➖➖➖\n\n"
+        message += f"🔗 <a href='{summary.booking_link}'>Book Flight</a>\n\n"
+        
+        if summary.hotel:
+            message += "<b>🏨 Recommended Hotel:</b>\n"
+            message += f"📌 {summary.hotel.name}\n"
+            message += f"⭐️ Rating: {summary.hotel.rating}\n"
+            message += f"💰 Price: {summary.hotel.price}\n"
+            message += f"🔗 <a href='{summary.hotel.booking_link}'>Book Hotel</a>\n"
+        
+        message += "\n➖➖➖➖➖➖➖➖➖➖\n\n"
     
     logger.info("Message formatting completed")
     return message
