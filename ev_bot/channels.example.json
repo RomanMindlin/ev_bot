@@ -1,0 +1,25 @@
+{
+  "channels": [
+    {
+      "telegram_bot_token": "YOUR_BOT_TOKEN_1",
+      "telegram_channel_id": "@your_spanish_channel",
+      "origin": "MAD",
+      "language": "Spanish",
+      "currency": "EUR"
+    },
+    {
+      "telegram_bot_token": "YOUR_BOT_TOKEN_2",
+      "telegram_channel_id": "@your_english_channel",
+      "origin": "NYC",
+      "language": "English",
+      "currency": "USD"
+    },
+    {
+      "telegram_bot_token": "YOUR_BOT_TOKEN_3",
+      "telegram_channel_id": "@your_russian_channel",
+      "origin": "MOW",
+      "language": "Russian",
+      "currency": "RUB"
+    }
+  ]
+}

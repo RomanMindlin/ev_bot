@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import argparse
 from aiogram import Bot
 from aiogram.enums import ParseMode
 from ev_bot.settings import settings
@@ -113,8 +114,9 @@ def get_translations(language: str = None) -> dict:
     return TRANSLATIONS.get(lang_key, TRANSLATIONS['english'])
 
 
-# Constant prompt for the AI agent
-PROMPT = f"""Please analyze available flights and suggest three best travel ideas for the next week.
+def create_prompt(language: str, currency: str) -> str:
+    """Create prompt for AI agent with specified language and currency."""
+    return f"""Please analyze available flights and suggest three best travel ideas for the next week.
 Best here means chippest, most interesting, or most unique destinations based on current flight data.
 For each idea, provide:
 1. A catchy header
@@ -122,35 +124,37 @@ For each idea, provide:
 3. Brief description of the destination
 4. Travel details including flight price, dates, and booking link
 
-Please provide all text in {settings.language or 'English'} language and show prices in {settings.currency or 'EUR'} currency.
+Please provide all text in {language} language and show prices in {currency} currency.
 Include currency symbols where appropriate. Don't try to translate the currency symbol, just use the symbol itself.
 
 Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
 
 
-async def send_to_telegram(message: str) -> None:
+async def send_to_telegram(message: str, bot_token: str, channel_id: str) -> None:
     """
-    Send a message to the configured Telegram channel.
+    Send a message to a Telegram channel.
     
     Args:
         message (str): The message to send
+        bot_token (str): Telegram bot token
+        channel_id (str): Telegram channel ID
         
     Raises:
         ValueError: If Telegram settings are not configured
     """
-    if not settings.telegram_bot_token or not settings.telegram_channel_id:
+    if not bot_token or not channel_id:
         logger.error("Telegram settings not configured")
         raise ValueError("Telegram bot token and channel ID must be configured")
     
-    logger.info("Sending message to Telegram channel")
-    bot = Bot(token=settings.telegram_bot_token)
+    logger.info(f"Sending message to Telegram channel {channel_id}")
+    bot = Bot(token=bot_token)
     try:
         await bot.send_message(
-            chat_id=settings.telegram_channel_id,
+            chat_id=channel_id,
             text=message,
             parse_mode=ParseMode.HTML
         )
-        logger.info("Message sent successfully")
+        logger.info(f"Message sent successfully to {channel_id}")
     except Exception as e:
         logger.error(f"Failed to send message: {str(e)}")
         raise
@@ -158,18 +162,19 @@ async def send_to_telegram(message: str) -> None:
         await bot.session.close()
 
 
-def format_travel_ideas(ideas: FlightAgentOutput) -> str:
+def format_travel_ideas(ideas: FlightAgentOutput, language: str) -> str:
     """
     Format travel ideas as an HTML message with translations.
     
     Args:
         ideas (FlightAgentOutput): The travel ideas from the AI agent
+        language (str): Target language for formatting
         
     Returns:
         str: Formatted HTML message in the target language
     """
-    logger.info("Formatting travel ideas as HTML message")
-    t = get_translations(settings.language)
+    logger.info(f"Formatting travel ideas as HTML message in {language}")
+    t = get_translations(language)
     
     message = f"<b>🌟 {t['title']} 🌟</b>\n\n"
     
@@ -201,25 +206,108 @@ def format_travel_ideas(ideas: FlightAgentOutput) -> str:
     return message
 
 
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Send travel ideas to Telegram channel',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  # Use environment variables
+  python telegram_sender.py
+  
+  # Override with command line arguments
+  python telegram_sender.py --origin MAD --language Spanish --currency EUR
+  
+  # Full configuration via CLI
+  python telegram_sender.py \
+    --bot-token YOUR_TOKEN \
+    --channel-id @your_channel \
+    --origin MAD \
+    --language Spanish \
+    --currency EUR \
+    --amadeus-client-id YOUR_ID \
+    --amadeus-client-secret YOUR_SECRET
+        """
+    )
+    
+    # Telegram settings
+    parser.add_argument('--bot-token', help='Telegram bot token')
+    parser.add_argument('--channel-id', help='Telegram channel ID')
+    
+    # Travel settings
+    parser.add_argument('--origin', help='Origin airport code (e.g., MAD, NYC)')
+    parser.add_argument('--language', help='Language for messages (e.g., English, Spanish, Russian)')
+    parser.add_argument('--currency', help='Currency code (e.g., EUR, USD)')
+    
+    # API credentials (optional overrides)
+    parser.add_argument('--amadeus-client-id', help='Amadeus API client ID')
+    parser.add_argument('--amadeus-client-secret', help='Amadeus API client secret')
+    parser.add_argument('--amadeus-environment', choices=['test', 'prod'], help='Amadeus API environment')
+    parser.add_argument('--travelpayouts-token', help='TravelPayouts API token')
+    parser.add_argument('--travelpayouts-marker', help='TravelPayouts affiliate marker')
+    parser.add_argument('--openai-key', help='OpenAI API key')
+    
+    return parser.parse_args()
+
+
 async def main() -> None:
     """Main function to run the telegram sender."""
     try:
-        logger.info("Starting telegram sender")
+        # Parse command line arguments
+        args = parse_args()
+        
+        # Use CLI args with fallback to environment variables
+        bot_token = args.bot_token or settings.telegram_bot_token
+        channel_id = args.channel_id or settings.telegram_channel_id
+        origin = args.origin or settings.origin
+        language = args.language or settings.language or 'English'
+        currency = args.currency or settings.currency
+        
+        # Override settings if provided via CLI
+        if args.amadeus_client_id:
+            settings.test_client_id = args.amadeus_client_id
+        if args.amadeus_client_secret:
+            settings.test_client_secret = args.amadeus_client_secret
+        if args.amadeus_environment:
+            settings.environment = args.amadeus_environment
+        if args.travelpayouts_token:
+            settings.travelpayouts_token = args.travelpayouts_token
+        if args.travelpayouts_marker:
+            settings.travelpayouts_marker = args.travelpayouts_marker
+        if args.openai_key:
+            settings.openai_key = args.openai_key
+        
+        # Override origin and currency for this run
+        settings.origin = origin
+        settings.currency = currency
+        
+        logger.info(f"Starting telegram sender - Origin: {origin}, Language: {language}, Currency: {currency}")
+        
+        # Validate required settings
+        if not bot_token or not channel_id:
+            logger.error("Missing required Telegram settings")
+            print("Error: --bot-token and --channel-id are required (or set via environment)", file=sys.stderr)
+            sys.exit(1)
         
         # Initialize AI agent
         logger.info("Initializing AI agent")
         agent = AiAgent()
         
+        # Create prompt with specified language and currency
+        prompt = create_prompt(language, currency)
+        
         # Get travel ideas
-        logger.info("Getting travel ideas from AI agent")
-        ideas = await agent.run_agent(PROMPT)
+        logger.info(f"Getting travel ideas from {origin}")
+        ideas = await agent.run_agent(prompt)
+        
         # Format and send message
-        logger.info("Formatting and sending message")
-        message = format_travel_ideas(ideas)
-        await send_to_telegram(message)
+        logger.info(f"Formatting message in {language}")
+        message = format_travel_ideas(ideas, language)
+        
+        await send_to_telegram(message, bot_token, channel_id)
         
         logger.info("Successfully completed telegram sender execution")
-        print("Successfully sent travel ideas to Telegram channel")
+        print(f"Successfully sent travel ideas to Telegram channel {channel_id}")
         
     except Exception as e:
         logger.error(f"Error in telegram sender: {str(e)}")
