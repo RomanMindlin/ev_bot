@@ -8,6 +8,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from ev_bot.settings import settings
 from ev_bot.logger import setup_logger
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 logger = setup_logger("ai_agent")
 
@@ -51,13 +52,11 @@ Each travel idea must follow this structure:
             "travel_dates_str": "...", #travel dates as a string
             "travel_start_date": "...", #travel start date
             "travel_end_date": "...", #travel end date
-            "booking_link": "...", #URL to purchase tickets
             "hotel": {
               "name": "...", #hotel name
               "price": "...", #hotel price per night
               "rating": "...", #hotel rating
               "address": "...", #hotel address
-              "booking_link": "..." #URL to book the hotel
             }
           }
         }
@@ -73,7 +72,6 @@ class HotelInfo(BaseModel):
     price: str
     rating: str
     address: str
-    booking_link: HttpUrl
 
 
 class TravelSummary(BaseModel):
@@ -130,6 +128,45 @@ class AiAgent:
         )
 
         logger.info("AiAgent initialized successfully")
+    
+    def _generate_flight_link(self, origin: str, destination: str, departure_date: str, return_date: str) -> str:
+        """
+        Generate TravelPayouts affiliate link for flight search.
+        
+        Args:
+            origin (str): Origin airport code
+            destination (str): Destination airport code
+            departure_date (str): Departure date in YYYY-MM-DD or ISO 8601 format
+            return_date (str): Return date in YYYY-MM-DD or ISO 8601 format
+            
+        Returns:
+            str: Affiliate link URL
+        """
+        base_url = "https://www.aviasales.com/search"
+        
+        # Extract date portion from ISO 8601 format if needed (e.g., "2025-12-27T12:10:00+02:00" -> "2025-12-27")
+        dep_date_str = departure_date.split('T')[0] if 'T' in departure_date else departure_date
+        ret_date_str = return_date.split('T')[0] if 'T' in return_date else return_date
+        
+        # Format: /search/ORIGIN[DDMM]DESTINATION[DDMM]1
+        # where DDMM is day and month
+        dep_date = datetime.strptime(dep_date_str, "%Y-%m-%d")
+        ret_date = datetime.strptime(ret_date_str, "%Y-%m-%d")
+        
+        dep_formatted = dep_date.strftime("%d%m")
+        ret_formatted = ret_date.strftime("%d%m")
+        
+        # Create search path
+        search_path = f"{origin}{dep_formatted}{destination}{ret_formatted}1"
+        
+        # Add marker parameter for affiliate tracking
+        params = {"marker": settings.travelpayouts_marker} if settings.travelpayouts_marker else {}
+        
+        url = f"{base_url}/{search_path}"
+        if params:
+            url += f"?{urlencode(params)}"
+        
+        return url
 
     def _search_hotel_offers(self, city_code: str, check_in: str, check_out: str) -> Dict[str, Any] | None:
         """
@@ -221,14 +258,28 @@ class AiAgent:
             
             summarized = []
             for flight in data:
+                origin = flight.get('origin')
+                destination = flight.get('destination')
+                departure_at = flight.get('departure_at')
+                return_at = flight.get('return_at')
+                
+                # Generate affiliate link
+                booking_link = self._generate_flight_link(
+                    origin=origin,
+                    destination=destination,
+                    departure_date=departure_at,
+                    return_date=return_at
+                ) if origin and destination and departure_at and return_at else "https://www.aviasales.com"
+                
                 summarized.append({
-                    'origin': flight.get('origin'),
-                    'destination': flight.get('destination'),
-                    'departure_at': flight.get('departure_at'),
-                    'return_at': flight.get('return_at'),
+                    'origin': origin,
+                    'destination': destination,
+                    'departure_at': departure_at,
+                    'return_at': return_at,
                     'price': flight.get('value') or flight.get('price'),
                     'airline': flight.get('airline'),
-                    'flight_number': flight.get('flight_number')
+                    'flight_number': flight.get('flight_number'),
+                    'booking_link': booking_link
                 })
             
             logger.info(f"Found {len(summarized)} flight inspirations")
