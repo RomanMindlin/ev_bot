@@ -4,9 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Environment Configuration
-    environment: str = Field("test", alias="ENVIRONMENT")
-
     # Amadeus API settings and configuration
     base_url: str = Field(
         "https://test.api.amadeus.com/v1",
@@ -17,20 +14,8 @@ class Settings(BaseSettings):
         description="URL for authentication endpoint"
     )
 
-    prod_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
-    prod_client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
-    test_client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID_TEST")
-    test_client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET_TEST")
-    
-    @computed_field
-    @property
-    def client_id(self) -> Optional[str]:
-        return self.test_client_id if self.environment == "test" else self.prod_client_id
-    
-    @computed_field
-    @property
-    def client_secret(self) -> Optional[str]:
-        return self.test_client_secret if self.environment == "test" else self.prod_client_secret
+    client_id: Optional[str] = Field(None, alias="AMADEUS_CLIENT_ID")
+    client_secret: Optional[str] = Field(None, alias="AMADEUS_CLIENT_SECRET")
 
     # TravelPayouts API settings
     travelpayouts_token: Optional[str] = Field(None, alias="TRAVELPAYOUTS_TOKEN")
