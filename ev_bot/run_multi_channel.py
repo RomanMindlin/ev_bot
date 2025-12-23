@@ -87,8 +87,6 @@ def build_command(config: Dict[str, Any], sender_script: str) -> List[str]:
         cmd.extend(['--amadeus-client-id', config['amadeus_client_id']])
     if 'amadeus_client_secret' in config:
         cmd.extend(['--amadeus-client-secret', config['amadeus_client_secret']])
-    if 'amadeus_environment' in config:
-        cmd.extend(['--amadeus-environment', config['amadeus_environment']])
     if 'travelpayouts_token' in config:
         cmd.extend(['--travelpayouts-token', config['travelpayouts_token']])
     if 'travelpayouts_marker' in config:

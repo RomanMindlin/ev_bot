@@ -120,7 +120,7 @@ class AiAgent:
         self.amadeus = AmadeusClient(
             client_id=settings.client_id,
             client_secret=settings.client_secret,
-            hostname=settings.environment
+            hostname='production'
         )
         self.travelpayouts = TravelPayoutsClient(
             settings.travelpayouts_token,

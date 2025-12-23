@@ -242,7 +242,6 @@ def parse_args():
     # API credentials (optional overrides)
     parser.add_argument('--amadeus-client-id', help='Amadeus API client ID')
     parser.add_argument('--amadeus-client-secret', help='Amadeus API client secret')
-    parser.add_argument('--amadeus-environment', choices=['test', 'prod'], help='Amadeus API environment')
     parser.add_argument('--travelpayouts-token', help='TravelPayouts API token')
     parser.add_argument('--travelpayouts-marker', help='TravelPayouts affiliate marker')
     parser.add_argument('--openai-key', help='OpenAI API key')
@@ -268,8 +267,6 @@ async def main() -> None:
             settings.test_client_id = args.amadeus_client_id
         if args.amadeus_client_secret:
             settings.test_client_secret = args.amadeus_client_secret
-        if args.amadeus_environment:
-            settings.environment = args.amadeus_environment
         if args.travelpayouts_token:
             settings.travelpayouts_token = args.travelpayouts_token
         if args.travelpayouts_marker:
