@@ -1,0 +1,4 @@
+#!/bin/sh
+docker rm -f amadeus || true
+docker build . -t amadeus
+docker run -d -v ./channels.json:/config/channels.json --env-file .env --name amadeus amadeus
