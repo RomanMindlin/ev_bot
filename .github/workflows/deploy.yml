@@ -1,0 +1,39 @@
+name: Deploy to remote server
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-master
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start ssh-agent and add key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SEHEL_SSH_KEY }}
+
+      - name: Add remote host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 2221 pic.ygto.com >> ~/.ssh/known_hosts
+
+      - name: Sync repository to server
+        run: |
+          rsync -az --delete --exclude '.git' -e "ssh -p 2221" ./ mindlin@pic.ygto.com:/home/mindlin/amadeus
+
+      - name: Rebuild and restart on server
+        run: |
+          ssh -p 2221 mindlin@pic.ygto.com <<'EOF'
+          set -e
+          cd /home/mindlin/amadeus
+          chmod +x rebuild
+          ./rebuild
+          EOF
