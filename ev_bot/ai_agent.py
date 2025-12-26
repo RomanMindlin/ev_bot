@@ -234,8 +234,8 @@ class AiAgent:
         logger.info("Searching for flight inspiration")
         # Calculate dates for next week
         today = datetime.now()
-        departure_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
-        return_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
+        departure_date = (today + timedelta(days=8)).strftime("%Y-%m-%d")
+        return_date = (today + timedelta(days=15)).strftime("%Y-%m-%d")
 
         try:
             # Use prices_for_dates to get flight prices for various destinations
