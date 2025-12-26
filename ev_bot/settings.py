@@ -23,6 +23,13 @@ class Settings(BaseSettings):
 
     # OpenAI API Key
     openai_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
+
+    # Pexels API Key and settings
+    pexels_api_key: Optional[str] = Field(None, alias="PEXELS_API_KEY")
+    pexels_search_url: str = Field(
+        "https://api.pexels.com/v1/search",
+        description="Base URL for Pexels search endpoint"
+    )
     
     # Telegram Settings
     telegram_bot_token: Optional[str] = Field(None, alias="TELEGRAM_BOT_TOKEN")

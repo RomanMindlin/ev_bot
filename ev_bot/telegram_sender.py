@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import argparse
+import requests
 from aiogram import Bot
 from aiogram.enums import ParseMode
 from ev_bot.settings import settings
@@ -114,6 +115,72 @@ def get_translations(language: str = None) -> dict:
     return TRANSLATIONS.get(lang_key, TRANSLATIONS['english'])
 
 
+def search_city_image(city_name: str) -> str | None:
+    """
+    Search for a relevant city image using the Pexels API.
+
+    Args:
+        city_name (str): Name of the city to search images for
+
+    Returns:
+        Optional[str]: URL of the image if found, otherwise None
+    """
+    logger.info(f"Pexels search started for city='{city_name}'")
+    api_key = settings.pexels_api_key
+    if not api_key:
+        logger.warning("PEXELS_API_KEY not configured; skipping image search")
+        return None
+
+    if not city_name:
+        logger.warning("No city name provided for image search")
+        return None
+
+    params = {
+        "query": f"{city_name} old city",
+        "orientation": "landscape",
+        "size": "large",
+        "per_page": 1
+    }
+    logger.debug(f"Pexels request params for '{city_name}': {params}")
+    headers = {"Authorization": api_key}
+
+    try:
+        response = requests.get(settings.pexels_search_url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        photos = data.get("photos") or []
+        if not photos:
+            logger.info(f"No Pexels photos found for {city_name}")
+            return None
+
+        src = photos[0].get("src") or {}
+        chosen = src.get("large2x") or src.get("large") or src.get("original")
+        logger.info(f"Pexels selected image for '{city_name}': {chosen}")
+        return chosen
+    except requests.RequestException as e:
+        logger.warning(f"Pexels request failed for {city_name}: {e}")
+    except Exception as e:
+        logger.warning(f"Unexpected error while fetching image for {city_name}: {e}")
+
+    return None
+
+
+def attach_city_images(ideas: FlightAgentOutput) -> None:
+    """
+    Populate each travel idea with a relevant city image URL from Pexels.
+
+    Args:
+        ideas (FlightAgentOutput): Travel ideas to enrich with images
+    """
+    for idea in ideas.ideas:
+        summary = idea.travel_summary
+        # Prefer English name for image search to improve relevance
+        destination = summary.destination_eng or summary.destination or idea.header
+        if not destination:
+            continue
+        idea.image_url = search_city_image(destination)
+
+
 def create_prompt(language: str, currency: str) -> str:
     """Create prompt for AI agent with specified language and currency."""
     return f"""Please analyze available flights and suggest three best travel ideas for the next week.
@@ -130,14 +197,18 @@ Include currency symbols where appropriate. Don't try to translate the currency 
 Format the response as a JSON object with an 'ideas' array containing three travel ideas."""
 
 
-async def send_to_telegram(message: str, bot_token: str, channel_id: str) -> None:
+async def send_to_telegram(
+    bot_token: str,
+    channel_id: str,
+    idea_messages: list[tuple[str | None, str]]
+) -> None:
     """
-    Send a message to a Telegram channel.
-    
+    Send each idea to a Telegram channel (photo first with caption).
+
     Args:
-        message (str): The message to send
         bot_token (str): Telegram bot token
         channel_id (str): Telegram channel ID
+        idea_messages (list): List of (photo_url | None, caption) tuples
         
     Raises:
         ValueError: If Telegram settings are not configured
@@ -146,64 +217,80 @@ async def send_to_telegram(message: str, bot_token: str, channel_id: str) -> Non
         logger.error("Telegram settings not configured")
         raise ValueError("Telegram bot token and channel ID must be configured")
     
-    logger.info(f"Sending message to Telegram channel {channel_id}")
+    logger.info(f"Sending ideas to Telegram channel {channel_id}")
     bot = Bot(token=bot_token)
     try:
-        await bot.send_message(
-            chat_id=channel_id,
-            text=message,
-            parse_mode=ParseMode.HTML
-        )
-        logger.info(f"Message sent successfully to {channel_id}")
+        for photo_url, caption in idea_messages:
+            try:
+                if photo_url:
+                    await bot.send_photo(
+                        chat_id=channel_id,
+                        photo=photo_url,
+                        caption=caption,
+                        parse_mode=ParseMode.HTML
+                    )
+                else:
+                    await bot.send_message(
+                        chat_id=channel_id,
+                        text=caption,
+                        parse_mode=ParseMode.HTML
+                    )
+                logger.info("Idea sent successfully")
+            except Exception as send_error:
+                logger.warning(f"Failed to send idea: {send_error}")
+                continue
     except Exception as e:
-        logger.error(f"Failed to send message: {str(e)}")
+        logger.error(f"Failed to send ideas: {str(e)}")
         raise
     finally:
         await bot.session.close()
 
 
-def format_travel_ideas(ideas: FlightAgentOutput, language: str) -> str:
-    """
-    Format travel ideas as an HTML message with translations.
-    
-    Args:
-        ideas (FlightAgentOutput): The travel ideas from the AI agent
-        language (str): Target language for formatting
-        
-    Returns:
-        str: Formatted HTML message in the target language
-    """
-    logger.info(f"Formatting travel ideas as HTML message in {language}")
+def format_idea_caption(idea, language: str) -> str:
+    """Format a single travel idea as an HTML caption."""
     t = get_translations(language)
-    
-    message = f"<b>🌟 {t['title']} 🌟</b>\n\n"
-    
+
+    parts: list[str] = []
+    parts.append(f"<b>{idea.header}</b>")
+    parts.append(f"<i>{idea.motivation}</i>")
+    parts.append(f"{idea.destination_description}")
+
+    summary = idea.travel_summary
+    parts.append(f"<b>{t['travel_details']}</b>")
+    parts.append(f"📍 {t['from']} {summary.starting_point}")
+    parts.append(f"✈️ {t['to']} {summary.destination}")
+    parts.append(f"📅 {t['dates']} {summary.travel_dates_str}")
+    parts.append(f"💰 {t['flight_price']} {summary.flight_price}")
+    if summary.flight_number:
+        parts.append(f"🔢 {t['flight']} {summary.flight_number}")
+    parts.append(f"🔗 <a href='{summary.booking_link}'>{t['book_flight']}</a>")
+
+    if summary.hotel:
+        parts.append(f"<b>🏨 {t['recommended_hotel']}</b>")
+        parts.append(f"📌 {summary.hotel.name}")
+        parts.append(f"⭐️ {t['rating']} {summary.hotel.rating}")
+        parts.append(f"💰 {t['price']} {summary.hotel.price}")
+
+    return "\n".join(parts)
+
+
+def build_photo_messages(ideas: FlightAgentOutput, language: str) -> list[tuple[str | None, str]]:
+    """
+    Build a list of (photo_url | None, caption) tuples for Telegram photo sending.
+
+    Args:
+        ideas (FlightAgentOutput): Travel ideas enriched with images
+        language (str): Target language for translated labels
+
+    Returns:
+        list[tuple[str | None, str]]: Photo URL (or None) and caption pairs
+    """
+    photos: list[tuple[str | None, str]] = []
     for idea in ideas.ideas:
-        message += f"<b>{idea.header}</b>\n"
-        message += f"<i>{idea.motivation}</i>\n\n"
-        message += f"{idea.destination_description}\n\n"
-        
-        summary = idea.travel_summary
-        message += f"<b>{t['travel_details']}</b>\n"
-        message += f"📍 {t['from']} {summary.starting_point}\n"
-        message += f"✈️ {t['to']} {summary.destination}\n"
-        message += f"📅 {t['dates']} {summary.travel_dates_str}\n"
-        message += f"💰 {t['flight_price']} {summary.flight_price}\n"
-        if summary.flight_number:
-            message += f"🔢 {t['flight']} {summary.flight_number}\n"
-        message += f"🔗 <a href='{summary.booking_link}'>{t['book_flight']}</a>\n\n"
-        
-        if summary.hotel:
-            message += f"<b>🏨 {t['recommended_hotel']}</b>\n"
-            message += f"📌 {summary.hotel.name}\n"
-            message += f"⭐️ {t['rating']} {summary.hotel.rating}\n"
-            message += f"💰 {t['price']} {summary.hotel.price}\n"
-            # message += f"🔗 <a href='{summary.hotel.booking_link}'>{t['book_hotel']}</a>\n"
-        
-        message += "\n➖➖➖➖➖➖➖➖➖➖\n\n"
-    
-    logger.info("Message formatting completed")
-    return message
+        caption = format_idea_caption(idea, language)
+        photos.append((idea.image_url, caption))
+
+    return photos
 
 
 def parse_args():
@@ -296,12 +383,14 @@ async def main() -> None:
         # Get travel ideas
         logger.info(f"Getting travel ideas from {origin}")
         ideas = await agent.run_agent(prompt)
+
+        # Enrich ideas with city images
+        logger.info("Searching for city images via Pexels")
+        attach_city_images(ideas)
+        idea_messages = build_photo_messages(ideas, language)
         
-        # Format and send message
-        logger.info(f"Formatting message in {language}")
-        message = format_travel_ideas(ideas, language)
-        
-        await send_to_telegram(message, bot_token, channel_id)
+        # Send each idea as its own message (photo first with caption)
+        await send_to_telegram(bot_token, channel_id, idea_messages)
         
         logger.info("Successfully completed telegram sender execution")
         print(f"Successfully sent travel ideas to Telegram channel {channel_id}")
