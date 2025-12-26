@@ -15,9 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync
-
       - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -28,9 +25,9 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p 2221 pic.ygto.com >> ~/.ssh/known_hosts
 
-      - name: Sync repository to server
+      - name: Sync repository to server (tar over SSH)
         run: |
-          rsync -az --delete --exclude '.git' -e "ssh -p 2221" ./ mindlin@pic.ygto.com:/home/mindlin/amadeus
+          tar -czf - --exclude='.git' . | ssh -p 2221 mindlin@pic.ygto.com 'mkdir -p /home/mindlin/amadeus && cd /home/mindlin/amadeus && tar -xzf -'
 
       - name: Rebuild and restart on server
         run: |
