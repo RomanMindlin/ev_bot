@@ -48,7 +48,8 @@ Each travel idea must follow this structure:
             "flight_number": "...", #if available
             "flight_price": "...", 
             "starting_point": "...", #city name for origin code
-            "destination": "...", #city name for destination code
+            "destination": "...", #city name for destination code in the requested language
+            "destination_eng": "...", #city name for destination code in English (always English)
             "travel_dates_str": "...", #travel dates as a string
             "travel_start_date": "...", #travel start date
             "travel_end_date": "...", #travel end date
@@ -79,6 +80,7 @@ class TravelSummary(BaseModel):
     flight_price: str
     starting_point: str
     destination: str
+    destination_eng: str | None = None
     travel_dates_str: str
     travel_start_date: datetime
     travel_end_date: datetime
@@ -91,6 +93,7 @@ class TravelIdea(BaseModel):
     motivation: str
     destination_description: str
     travel_summary: TravelSummary
+    image_url: HttpUrl | None = None
 
 
 class FlightAgentOutput(BaseModel):
