@@ -33,10 +33,8 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SEHEL_SSH_KEY }}
-          source: |
-            .env
-            .
-          target: /opt/ev_bot/
+          source: "./"
+          target: /home/mindlin/ev_bot/
 
       - name: Deploy on server via SSH
         uses: appleboy/ssh-action@v1.2.4
