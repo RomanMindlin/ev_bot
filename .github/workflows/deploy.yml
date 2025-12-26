@@ -15,25 +15,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Start ssh-agent and add key
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Create .env from template
+        run: |
+          envsubst < .env.template > .env
+        env:
+          AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
+          AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+
+      - name: Copy app + .env to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          ssh-private-key: ${{ secrets.SEHEL_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SEHEL_SSH_KEY }}
+          source: |
+            .env
+            .
+          target: /opt/ev_bot/
 
-      - name: Add remote host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p 2221 pic.ygto.com >> ~/.ssh/known_hosts
-
-      - name: Sync repository to server (tar over SSH)
-        run: |
-          tar -czf - --exclude='.git' . | ssh -p 2221 mindlin@pic.ygto.com 'mkdir -p /home/mindlin/amadeus && cd /home/mindlin/amadeus && tar -xzf -'
-
-      - name: Rebuild and restart on server
-        run: |
-          ssh -p 2221 mindlin@pic.ygto.com <<'EOF'
-          set -e
-          cd /home/mindlin/amadeus
-          chmod +x rebuild
-          ./rebuild
-          EOF
+      - name: Deploy on server via SSH
+        uses: appleboy/ssh-action@v1.0.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SEHEL_SSH_KEY }}
+          script: |
+            cd /home/mindlin/amadeus
+            git pull || true
+            chmod +x rebuild
+            ./rebuild
