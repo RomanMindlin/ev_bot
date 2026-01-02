@@ -46,5 +46,6 @@ jobs:
           script: |
             cd /home/mindlin/amadeus
             git pull || true
-            chmod +x rebuild
-            ./rebuild
+            docker rm -f amadeus || true
+            docker image prune -f
+            docker compose -f docker-compose.yaml up -d --build
